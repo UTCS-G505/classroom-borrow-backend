@@ -9,7 +9,7 @@
 docker build -t classroom-borrow-image .
 
 2️⃣ 啟動容器：
-docker run -d --name classroom-borrow-container -p 33063306 classroom-borrow-image
+docker run -d --name classroom-borrow-container -p 3306:3306 classroom-borrow-image
 
 
 🗝️ MySQL 登入資訊
