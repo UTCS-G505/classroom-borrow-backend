@@ -32,20 +32,22 @@ docker run -d --name classroom-borrow-container -p 3306:3306 classroom-borrow-im
 🗝️ MySQL 登入資訊
 --------------------------
 Host：127.0.0.1
+
 Port：3306
+
 Database：classroom_borrow_system
 
 管理者帳號：
 
-  Username：root
+  Username：`root`
 
-  Password：root
+  Password：`root`
 
 一般使用者帳號：
 
-  Username：user
+  Username：`user`
 
-  Password：1234
+  Password：`1234`
 
 
 查看資料指令:
