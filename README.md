@@ -5,14 +5,30 @@
 
 🔧 建構與啟動指令
 --------------------------
-1️⃣ 建構映像檔:
+1. 建構映像檔:
 ```bash
 docker build -t classroom-borrow-image .
 ```
-2️⃣ 啟動容器：
+2. 啟動容器：
 ```bash
 docker run -d --name classroom-borrow-container -p 3306:3306 classroom-borrow-image
 ```
+3. 打開 SQL 命令列：
+
+**使用管理者帳號**
+```bash
+docker exec -it classroom-borrow-container mysql -u root -p
+```
+執行後，系統會提示您輸入密碼 (Enter password:)
+請輸入 `root`
+
+**使用一般使用者帳號**
+```bash
+docker exec -it classroom-borrow-container mysql -u user -p
+```
+執行後，系統會提示您輸入密碼 (Enter password:)
+請輸入 `1234`
+
 
 🗝️ MySQL 登入資訊
 --------------------------
