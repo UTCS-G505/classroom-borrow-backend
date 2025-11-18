@@ -31,11 +31,11 @@ docker run -d --name classroom-borrow-container -p 3306:3306 classroom-borrow-im
 
 🗝️ MySQL 登入資訊
 --------------------------
-Host：127.0.0.1
+Host：`127.0.0.1`
 
-Port：3306
+Port：`3306`
 
-Database：classroom_borrow_system
+Database：`classroom_borrow_system`
 
 管理者帳號：
 
@@ -51,23 +51,38 @@ Database：classroom_borrow_system
 
 
 查看資料指令:
--- 選擇資料庫
+
+- 選擇資料庫
+```sql
 USE classroom_borrow_system;
+```
 
--- 查看所有使用者
+- 查看所有使用者
+```sql
 SELECT * FROM users;
+```
 
--- 查看所有教室
+- 查看所有教室
+```sql
 SELECT * FROM classrooms;
+```
 
--- 查看所有借用申請
+- 查看所有借用申請
+```sql
 SELECT * FROM borrow_requests;
+```
 
--- 查看所有時段表
+- 查看所有時段表
+```sql
 SELECT * FROM schedule;
+```
 
--- 查看所有公告
+- 查看所有公告
+```sql
 SELECT * FROM announcements;
+```
 
--- 查看違規名單
+- 查看違規名單
+```sql
 SELECT * FROM blacklist;
+```
