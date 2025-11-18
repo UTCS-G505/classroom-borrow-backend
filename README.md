@@ -6,11 +6,13 @@
 🔧 建構與啟動指令
 --------------------------
 1️⃣ 建構映像檔:
+```bash
 docker build -t classroom-borrow-image .
-
+```
 2️⃣ 啟動容器：
+```bash
 docker run -d --name classroom-borrow-container -p 3306:3306 classroom-borrow-image
-
+```
 
 🗝️ MySQL 登入資訊
 --------------------------

@@ -8,7 +8,7 @@ ENV MYSQL_USER=user
 ENV MYSQL_PASSWORD=1234
 
 # 複製你的 SQL 檔案到容器內的初始化資料夾
-COPY ./classroom_borrow_system.sql /docker-entrypoint-initdb.d/
+COPY ./sql/classroom_borrow_system.sql /docker-entrypoint-initdb.d/
 
 # MySQL 預設埠號
 EXPOSE 3306
