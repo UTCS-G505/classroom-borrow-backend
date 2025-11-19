@@ -15,7 +15,6 @@
 copy .env.example .env
 ```
 #### macOS / Linux：
-
 ```bash 
 cp .env.example .env
 ```
@@ -24,6 +23,7 @@ cp .env.example .env
 
 > ⚠ `.env` 不會被上傳到 GitHub，每位開發者需自行建立。
 
+
 ---
 
 ## 2️⃣ 使用 Docker Compose 啟動整套服務
@@ -31,21 +31,6 @@ cp .env.example .env
 ```bash
 docker compose up -d
 ```
-3. 打開 SQL 命令列：
-
-    **使用管理者帳號**
-    ```bash
-    docker exec -it classroom-borrow-container mysql -u root -p
-    ```
-    執行後，系統會提示您輸入密碼 (Enter password:) `root`
-
-    **使用一般使用者帳號**
-    ```bash
-    docker exec -it classroom-borrow-container mysql -u user -p
-    ```
-    執行後，系統會提示您輸入密碼 (Enter password:) `1234`
-
---------------------------
 
 成功後會啟動：
 
@@ -72,7 +57,7 @@ docker compose logs -f backend
 ### MySQL
 ---
 
-#### 1️⃣ 進入 MySQL 容器
+#### 1 進入 MySQL 容器
 
 ```bash
 docker exec -it classroom-db mysql -u root -p
@@ -86,7 +71,7 @@ MYSQL_ROOT_PASSWORD
 
 ---
 
-#### 2️⃣ 常用 SQL 指令
+#### 2 常用 SQL 指令
 
 #### ✔ 使用 classroom 資料庫
 
