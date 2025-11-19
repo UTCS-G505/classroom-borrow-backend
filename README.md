@@ -21,6 +21,21 @@
 ```bash
 docker compose up -d
 ```
+3. 打開 SQL 命令列：
+
+    **使用管理者帳號**
+    ```bash
+    docker exec -it classroom-borrow-container mysql -u root -p
+    ```
+    執行後，系統會提示您輸入密碼 (Enter password:) `root`
+
+    **使用一般使用者帳號**
+    ```bash
+    docker exec -it classroom-borrow-container mysql -u user -p
+    ```
+    執行後，系統會提示您輸入密碼 (Enter password:) `1234`
+
+--------------------------
 
 成功後會啟動：
 
