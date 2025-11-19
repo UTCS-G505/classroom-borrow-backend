@@ -6,9 +6,19 @@
 
 # 🚀 專案啟動方式
 
-## 1️⃣ 建立 `.env`（首次啟動必做）
+## 1️⃣ 建立 `.env`（第一次啟動必做，第二次後面就不用做）
 
-請依照專案內提供的 `.env.example`，將名稱改成 `.env`
+請依照專案內提供的 `.env.example`，新增 `.env`
+
+#### Windows:
+```bash
+copy .env.example .env
+```
+#### macOS / Linux：
+
+```bash 
+cp .env.example .env
+```
 
 `.env` 內包含root密碼、資料庫名稱與一般使用者帳密，請自行更改root密碼。
 
