@@ -9,12 +9,6 @@
 ## 1️⃣ 建立 `.env`（第一次啟動必做，第二次後面就不用做）
 
 請依照專案內提供的 `.env.example`，新增 `.env`
-
-#### Windows:
-```bash
-copy .env.example .env
-```
-#### macOS / Linux：
 ```bash 
 cp .env.example .env
 ```
@@ -39,12 +33,6 @@ docker compose up -d
 | backend | classroom-backend | 3000 → 3000  |
 | mysql   | classroom-db      | 3307 → 3306  |
 
-後端 API 預設運行在：
-
-```
-http://localhost:3000
-```
-
 ---
 
 ## 3️⃣ 查看後端 Log & MySQL
@@ -53,6 +41,12 @@ http://localhost:3000
 ```bash
 docker compose logs -f backend
 ```
+後端 API 預設運行在：
+
+```
+http://localhost:3000
+```
+
 
 ### MySQL
 ---
@@ -68,7 +62,6 @@ docker exec -it classroom-db mysql -u root -p
 ```
 MYSQL_ROOT_PASSWORD
 ```
-
 ---
 
 #### 2 常用 SQL 指令
