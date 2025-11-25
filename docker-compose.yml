@@ -10,6 +10,21 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p$$MYSQL_ROOT_PASSWORD"
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 30
     volumes:
       - ./mysql-data:/var/lib/mysql                 # 資料庫實際資料
       - ./sql:/docker-entrypoint-initdb.d          # 這裡放 classroom_borrow_system.sql
