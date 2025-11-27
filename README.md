@@ -12,7 +12,7 @@ cp .env.example .env
 
 `.env` 內包含root密碼、資料庫名稱與一般使用者帳密，請自行更改root密碼。
 
-> ⚠ `.env` 不會被上傳到 GitHub，每位開發者需自行建立。
+> `.env` 不會被上傳到 GitHub，需自行建立。
 
 
 ---
@@ -20,7 +20,7 @@ cp .env.example .env
 ### 2 使用 Docker Compose 啟動整套服務
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 成功後會啟動：
@@ -63,19 +63,19 @@ MYSQL_ROOT_PASSWORD
 
 ##### 2 常用 SQL 指令
 
-##### ✔ 使用 classroom 資料庫
+##### 使用 classroom 資料庫
 
 ```sql
 USE classroom_borrow_system;
 ```
 
-##### ✔ 查看所有資料表
+##### 查看所有資料表
 
 ```sql
 SHOW TABLES;
 ```
 
-##### ✔ 查詢常用資料表
+##### 查詢常用資料表
 
 ```sql
 SELECT * FROM users;
@@ -87,7 +87,7 @@ SELECT * FROM blacklist;
 
 ---
 
-### 🛑 停止與清除容器
+### 停止與清除容器
 
 停止服務：
 
@@ -103,7 +103,7 @@ docker compose down -v
 
 ---
 
-### 🔑 密碼更新注意事項
+### 密碼更新注意事項
 
 若你更改 `.env` 的 MySQL 密碼，MySQL 不會自動更新。需：
 
