@@ -1,8 +1,13 @@
 const pool = require('../db');
 
 exports.getBookings = (req, res) => {
-    const value = req.body.id;
-    //const value = 1;
+  const 
+  {
+    id,
+    role
+  } = req.body;
+  const value = id;
+  if ( role != 'admin' )  {
     const sql = 'SELECT * FROM borrow_requests WHERE borrower_id = ? ORDER BY created_at DESC';
     pool.query(sql, value, (err, rows) => {
         if (err) {
@@ -11,7 +16,19 @@ exports.getBookings = (req, res) => {
         } else {
           res.json(rows);
         }
-    });
+      });
+  }
+  else {
+    const sql = 'SELECT * FROM borrow_requests ORDER BY created_at DESC';
+    pool.query(sql, value, (err, rows) => {
+        if (err) {
+          console.error('Query error:', err);
+          res.status(500).send('Database error');
+        } else {
+          res.json(rows);
+        }
+      });
+  }
 }
 
 exports.getBookingssByid = (req, res) => {

@@ -1,0 +1,1145 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Sample Todo",
+    "description": "Description",
+    "version": "1.0.0"
+  },
+  "host": "localhost:3000",
+  "basePath": "/",
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/bookings/schedule/": {
+      "get": {
+        "tags": [
+          "schedule"
+        ],
+        "description": "取得特定時間教室的行程",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "description": "(日期)YYYY-MM-DD",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2025-11-20"
+            }
+          },
+          {
+            "name": "classroom_id",
+            "in": "query",
+            "description": "教室id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "C101"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "schedule_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "classroom_id": {
+                    "type": "string",
+                    "example": "C101"
+                  },
+                  "date": {
+                    "type": "string",
+                    "example": "2025-11-20T00:00:00.000Z"
+                  },
+                  "time_slot": {
+                    "type": "string",
+                    "example": "09:00-11:00"
+                  },
+                  "booked_by": {
+                    "type": "number",
+                    "example": 4
+                  },
+                  "borrow_request_id": {
+                    "type": "number",
+                    "example": 2
+                  },
+                  "event_name": {
+                    "type": "string",
+                    "example": "英文戲劇社演出"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "已預約"
+                  }
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/admin/bookings": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "description": "取得所有申請",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "request_id": {
+                    "type": "number",
+                    "example": 4
+                  },
+                  "borrower_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "classroom_id": {
+                    "type": "string",
+                    "example": "H01"
+                  },
+                  "borrow_type": {
+                    "type": "string",
+                    "example": "單次借用"
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "example": "2025-11-05T00:00:00.000Z"
+                  },
+                  "end_date": {},
+                  "start_time": {
+                    "type": "string",
+                    "example": "10:00:00"
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "example": "12:00:00"
+                  },
+                  "event_name": {
+                    "type": "string",
+                    "example": "大型繪畫工作坊"
+                  },
+                  "people_count": {
+                    "type": "number",
+                    "example": 25
+                  },
+                  "teacher_name": {
+                    "type": "string",
+                    "example": "林老師"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "example": "活動需要較多空間"
+                  },
+                  "status": {
+                    "type": "string",
+                    "example": "退件"
+                  },
+                  "reject_reason": {
+                    "type": "string",
+                    "example": "場地與設備不可同時租借"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "example": "2025-11-29T16:27:57.000Z"
+                  },
+                  "teacher_department": {
+                    "type": "string",
+                    "example": "視覺設計系"
+                  },
+                  "teacher_phone": {
+                    "type": "string",
+                    "example": "02-2345-6789"
+                  },
+                  "teacher_email": {
+                    "type": "string",
+                    "example": "teacher02@example.edu"
+                  },
+                  "borrower_department": {
+                    "type": "string",
+                    "example": "資訊系"
+                  },
+                  "borrower_phone": {
+                    "type": "string",
+                    "example": "0912-000001"
+                  },
+                  "borrower_email": {
+                    "type": "string",
+                    "example": "s001@example.edu"
+                  }
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/bookings/{id}/status": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "description": "審核特定申請",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "request_id",
+            "schema": {
+              "type": "string",
+              "example": "3"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "新增申請內容",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "核准"
+                },
+                "reject_reason": {
+                  "type": "string",
+                  "example": "test1"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "已審核"
+                },
+                "request_id": {
+                  "type": "number",
+                  "example": 0
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/admin/announcements": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "description": "新增公告",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "新增申請內容",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "example": "test1"
+                },
+                "content": {
+                  "type": "string",
+                  "example": "test2"
+                },
+                "expired_at": {
+                  "type": "string",
+                  "example": "2025-11-24"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "公告已建立"
+                },
+                "request_id": {
+                  "type": "number",
+                  "example": 4
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/admin/blacklist": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "description": "新增黑名單",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "新增申請內容",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user_id": {
+                  "type": "number",
+                  "example": 1
+                },
+                "reason": {
+                  "type": "string",
+                  "example": "test1"
+                },
+                "expired_at": {
+                  "type": "string",
+                  "example": "2025-10-30"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "黑名單已更新"
+                },
+                "request_id": {
+                  "type": "number",
+                  "example": 2
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/admin/blacklist/{id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "description": "刪除黑名單",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "user_id",
+            "schema": {
+              "type": "number",
+              "example": 2
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "黑名單已更新"
+                },
+                "request_id": {
+                  "type": "number",
+                  "example": 0
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/announcements/": {
+      "get": {
+        "tags": [
+          "announcement"
+        ],
+        "description": "取得所有公告",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "announcement_id": {
+                    "type": "number",
+                    "example": 2
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "防疫注意事項"
+                  },
+                  "content": {
+                    "type": "string",
+                    "example": "進入教室請配戴口罩並完成手部消毒。"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "example": "2025-11-29T16:27:57.000Z"
+                  },
+                  "expired_at": {}
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/announcements/{id}": {
+      "get": {
+        "tags": [
+          "announcement"
+        ],
+        "description": "取得特定公告",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "公告id",
+            "schema": {
+              "type": "number",
+              "example": 2
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "announcement_id": {
+                    "type": "number",
+                    "example": 2
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "防疫注意事項"
+                  },
+                  "content": {
+                    "type": "string",
+                    "example": "進入教室請配戴口罩並完成手部消毒。"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "example": "2025-11-29T16:27:57.000Z"
+                  },
+                  "expired_at": {}
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/bookings/": {
+      "get": {
+        "tags": [
+          "bookings"
+        ],
+        "description": "查看自己的申請 *管理員會回傳所有申請",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "身分與id",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "example": "1"
+                },
+                "role": {
+                  "type": "string",
+                  "example": "students"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "bookings"
+        ],
+        "description": "新增申請",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "新增申請內容",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "classroom_id": {
+                  "type": "string",
+                  "example": "C102"
+                },
+                "borrow_type": {
+                  "type": "string",
+                  "example": "多次借用"
+                },
+                "start_date": {
+                  "type": "string",
+                  "example": "2025-11-05"
+                },
+                "start_time": {
+                  "type": "string",
+                  "example": "13:00"
+                },
+                "end_time": {
+                  "type": "string",
+                  "example": "15:00"
+                },
+                "event_name": {
+                  "type": "string",
+                  "example": "社團活動"
+                },
+                "people_count": {
+                  "type": "number",
+                  "example": 25
+                },
+                "teacher_name": {
+                  "type": "string",
+                  "example": "王老師"
+                },
+                "reason": {
+                  "type": "string",
+                  "example": "舉辦迎新活動"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "已取消"
+                },
+                "request_id": {
+                  "type": "number",
+                  "example": 0
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/bookings/{id}": {
+      "get": {
+        "tags": [
+          "bookings"
+        ],
+        "description": "取得特定申請",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "申請id",
+            "schema": {
+              "type": "number",
+              "example": 7
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "request_id": {
+                  "type": "number",
+                  "example": 7
+                },
+                "borrower_id": {
+                  "type": "number",
+                  "example": 4
+                },
+                "classroom_id": {
+                  "type": "string",
+                  "example": "C102"
+                },
+                "borrow_type": {
+                  "type": "string",
+                  "example": "多次借用"
+                },
+                "start_date": {
+                  "type": "string",
+                  "example": "2025-11-05T00:00:00.000Z"
+                },
+                "end_date": {},
+                "start_time": {
+                  "type": "string",
+                  "example": "13:00:00"
+                },
+                "end_time": {
+                  "type": "string",
+                  "example": "15:00:00"
+                },
+                "event_name": {
+                  "type": "string",
+                  "example": "社團活動"
+                },
+                "people_count": {
+                  "type": "number",
+                  "example": 25
+                },
+                "teacher_name": {
+                  "type": "string",
+                  "example": "王老師"
+                },
+                "reason": {
+                  "type": "string",
+                  "example": "舉辦迎新活動"
+                },
+                "status": {
+                  "type": "string",
+                  "example": "審核中"
+                },
+                "reject_reason": {},
+                "created_at": {
+                  "type": "string",
+                  "example": "2025-11-30T06:08:56.000Z"
+                },
+                "teacher_department": {},
+                "teacher_phone": {},
+                "teacher_email": {},
+                "borrower_department": {},
+                "borrower_phone": {},
+                "borrower_email": {}
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/bookings/{id}/cancel": {
+      "put": {
+        "tags": [
+          "bookings"
+        ],
+        "description": "取消申請",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "申請id",
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "申請已建立"
+                },
+                "request_id": {
+                  "type": "number",
+                  "example": 7
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/classrooms/": {
+      "get": {
+        "tags": [
+          "classrooms"
+        ],
+        "description": "取得所有教室",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "classroom_id": {
+                    "type": "string",
+                    "example": "C102"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "第二教室"
+                  },
+                  "type": {
+                    "type": "string",
+                    "example": "一般教室"
+                  },
+                  "capacity": {
+                    "type": "number",
+                    "example": 40
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "投影、白板"
+                  },
+                  "image_url": {
+                    "type": "string",
+                    "example": "/images/C102.jpg"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "example": "2025-11-29T16:27:57.000Z"
+                  }
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "classrooms"
+        ],
+        "description": "新增教室 *只有管理員可以新增",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "新增教室內容",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "example": "admin"
+                },
+                "classroom_id": {
+                  "type": "string",
+                  "example": "testclass"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "測試教室"
+                },
+                "type": {
+                  "type": "string",
+                  "example": "一般教室"
+                },
+                "capacity": {
+                  "type": "number",
+                  "example": 1000
+                },
+                "description": {
+                  "type": "string",
+                  "example": "新增描述"
+                },
+                "image_url": {
+                  "type": "string",
+                  "example": "/url"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "已新增教室"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/classrooms/{id}": {
+      "get": {
+        "tags": [
+          "classrooms"
+        ],
+        "description": "取得特定教室",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "教室id",
+            "schema": {
+              "type": "string",
+              "example": "C101"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "classroom_id": {
+                    "type": "string",
+                    "example": "C101"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "第一演奏廳"
+                  },
+                  "type": {
+                    "type": "string",
+                    "example": "音樂教室"
+                  },
+                  "capacity": {
+                    "type": "number",
+                    "example": 120
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "有鋼琴與舞台"
+                  },
+                  "image_url": {
+                    "type": "string",
+                    "example": "/images/C101.jpg"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "example": "2025-11-29T16:27:57.000Z"
+                  }
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "classrooms"
+        ],
+        "description": "新增特定教室 *只有管理員可以更新",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "教室id",
+            "schema": {
+              "type": "string",
+              "example": "C101"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "更新教室內容",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "測試教室2"
+                },
+                "type": {
+                  "type": "string",
+                  "example": "二般教室"
+                },
+                "capacity": {
+                  "type": "number",
+                  "example": 9999
+                },
+                "description": {
+                  "type": "string",
+                  "example": "更新描述"
+                },
+                "image_url": {
+                  "type": "string",
+                  "example": "/url2"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "教室資訊更新"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "classrooms"
+        ],
+        "description": "刪除特定教室 *只有管理員可以刪除",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "教室id",
+            "schema": {
+              "type": "string",
+              "example": "C101"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "example": "教室已刪除"
+                  }
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }
+  }
+}

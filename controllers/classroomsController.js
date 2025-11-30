@@ -23,6 +23,7 @@ exports.getClassroomsByid = (req, res) => {
 }
 exports.postClassrooms = (req, res) => {
     const {
+      role,
       classroom_id,
       name, 
       type,
@@ -30,7 +31,8 @@ exports.postClassrooms = (req, res) => {
       description,
       image_url
     } = req.body;
-
+    if ( role != 'admin' ){
+      res.json({message:"資格不符"})  }
     if (!classroom_id || !name || !type || !capacity || !description || !image_url) {
       return res.status(400).json({ error: '缺少必要欄位' });
     }
