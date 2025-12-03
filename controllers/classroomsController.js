@@ -23,7 +23,6 @@ exports.getClassroomsByid = (req, res) => {
 }
 exports.postClassrooms = (req, res) => {
     const {
-      role,
       classroom_id,
       name, 
       type,
@@ -31,11 +30,25 @@ exports.postClassrooms = (req, res) => {
       description,
       image_url
     } = req.body;
-    if ( role != 'admin' ){
-      res.json({message:"資格不符"})  }
+
+
+    const missing = [];
+    if (!classroom_id) missing.push('classroom_id');
+    if (!name) missing.push('type');
+    if (!capacity) missing.push('capacity');
+    if (!description) missing.push('tdescriptionype');
+    if (!image_url) missing.push('capimage_urlacity');
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error: `缺少必要欄位: ${missing.join(', ')}`
+      });
+    }
+      /*
     if (!classroom_id || !name || !type || !capacity || !description || !image_url) {
       return res.status(400).json({ error: '缺少必要欄位' });
     }
+      */
 
     const sql = `
         INSERT INTO classrooms 

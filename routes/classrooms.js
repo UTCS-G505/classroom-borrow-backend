@@ -33,7 +33,7 @@ router.get('/:id',
         #swagger.description = '取得特定教室'
         #swagger.parameters['id'] = {
             in: 'path',
-            description: '教室id',
+            description: '教室編號',
             required: true,
             schema: "C101"
         }   

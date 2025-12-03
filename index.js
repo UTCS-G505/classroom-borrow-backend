@@ -48,7 +48,10 @@ app.use('/classrooms',
   // #swagger.tags = ['classrooms']
   require('./routes/classrooms'));
   
-//app.use('/test', require('./testapi/tests'));
+app.use('/test', 
+  // #swagger.ignore = true
+  // #swagger.tags = ['測試用']
+  require('./routes/tests'));
 
 app.get('/ping', (req, res) => {
   // #swagger.ignore = true

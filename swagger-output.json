@@ -1,8 +1,8 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Sample Todo",
-    "description": "Description",
+    "title": "classroom-borrow-backend-API",
+    "description": "API-swagger",
     "version": "1.0.0"
   },
   "host": "localhost:3000",
@@ -218,7 +218,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "request_id",
+            "description": "申請編號",
             "schema": {
               "type": "string",
               "example": "3"
@@ -263,6 +263,9 @@
                 "name": "main"
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
           },
           "500": {
             "description": "Internal Server Error"
@@ -553,28 +556,19 @@
         "tags": [
           "bookings"
         ],
-        "description": "查看自己的申請 *管理員會回傳所有申請",
+        "description": "查看自己的申請",
         "produces": [
           "application/json; charset=utf-8"
         ],
         "parameters": [
           {
-            "name": "body",
-            "in": "body",
-            "description": "身分與id",
+            "name": "id",
+            "in": "query",
+            "description": "使用者編號",
             "required": true,
             "schema": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "example": "1"
-                },
-                "role": {
-                  "type": "string",
-                  "example": "students"
-                }
-              }
+              "type": "number",
+              "example": 1
             }
           }
         ],
@@ -599,46 +593,53 @@
           {
             "name": "body",
             "in": "body",
-            "description": "新增申請內容",
-            "required": true,
             "schema": {
               "type": "object",
               "properties": {
                 "classroom_id": {
-                  "type": "string",
-                  "example": "C102"
+                  "example": "any"
                 },
                 "borrow_type": {
-                  "type": "string",
-                  "example": "多次借用"
+                  "example": "any"
                 },
                 "start_date": {
-                  "type": "string",
-                  "example": "2025-11-05"
+                  "example": "any"
                 },
                 "start_time": {
-                  "type": "string",
-                  "example": "13:00"
+                  "example": "any"
                 },
                 "end_time": {
-                  "type": "string",
-                  "example": "15:00"
+                  "example": "any"
                 },
                 "event_name": {
-                  "type": "string",
-                  "example": "社團活動"
+                  "example": "any"
                 },
                 "people_count": {
-                  "type": "number",
-                  "example": 25
+                  "example": "any"
                 },
                 "teacher_name": {
-                  "type": "string",
-                  "example": "王老師"
+                  "example": "any"
                 },
                 "reason": {
-                  "type": "string",
-                  "example": "舉辦迎新活動"
+                  "example": "any"
+                },
+                "teacher_department": {
+                  "example": "any"
+                },
+                "teacher_phone": {
+                  "example": "any"
+                },
+                "teacher_email": {
+                  "example": "any"
+                },
+                "borrower_department": {
+                  "example": "any"
+                },
+                "borrower_phone": {
+                  "example": "any"
+                },
+                "borrower_email": {
+                  "example": "any"
                 }
               }
             }
@@ -688,7 +689,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "申請id",
+            "description": "申請編號",
             "schema": {
               "type": "number",
               "example": 7
@@ -788,7 +789,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "申請id",
+            "description": "申請編號",
             "schema": {
               "type": "string",
               "example": "1"
@@ -803,7 +804,55 @@
               "properties": {
                 "message": {
                   "type": "string",
-                  "example": "申請已建立"
+                  "example": "申請已取消"
+                },
+                "request_id": {
+                  "type": "number",
+                  "example": 7
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/bookings/{id}/return": {
+      "put": {
+        "tags": [
+          "bookings"
+        ],
+        "description": "歸還申請",
+        "produces": [
+          "application/json; charset=utf-8"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "申請編號",
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "教室已歸還"
                 },
                 "request_id": {
                   "type": "number",
@@ -964,7 +1013,7 @@
             "in": "path",
             "required": true,
             "type": "string",
-            "description": "教室id",
+            "description": "教室編號",
             "schema": {
               "type": "string",
               "example": "C101"

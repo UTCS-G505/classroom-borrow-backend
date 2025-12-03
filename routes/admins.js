@@ -61,7 +61,7 @@ router.put('/bookings/:id/status',
         #swagger.description = '審核特定申請'
         #swagger.parameters['id'] = {
             in: 'path',
-            description: 'request_id',
+            description: '申請編號',
             required: true,
             schema: "3"
         }

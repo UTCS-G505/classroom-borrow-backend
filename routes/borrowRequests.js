@@ -4,17 +4,14 @@ const controller = require('../controllers/borrowRequestsController');
 
 router.get('/', 
     /* 
-        #swagger.description = '查看自己的申請 *管理員會回傳所有申請'
-        #swagger.parameters['body'] = {
-            in: 'body',
-            description: '身分與id',
+        #swagger.description = '查看自己的申請'
+        #swagger.parameters['id'] = {
+            in: 'query',
+            description: '使用者編號',
             required: true,
-            schema: {
-                "id": "1",
-                "role": "students"
-            }
-        } 
-        #swagger.responses[200] = { 
+            schema: 1
+        }  
+        #swagger.responses[200] = [
             schema: 	
             {
                 {
@@ -63,7 +60,7 @@ router.get('/',
                     "borrower_phone": "0912-000001",
                     "borrower_email": "s001@example.edu"
                 }
-            }
+            ]
         } 
     */
     controller.getBookings);
@@ -73,7 +70,7 @@ router.get('/:id',
         #swagger.description = '取得特定申請'
         #swagger.parameters['id'] = {
             in: 'path',
-            description: '申請id',
+            description: '申請編號',
             required: true,
             schema: 7
         }
@@ -122,6 +119,12 @@ router.post('/',
                 "people_count": 25,
                 "teacher_name": "王老師",
                 "reason": "舉辦迎新活動"
+                "teacher_department": "test1",
+                "teacher_phone": "test2",
+                "teacher_email": "test3",
+                "borrower_department": "test4",
+                "borrower_phone": "test5",
+                "borrower_email": "test6"
             }
         } 
         #swagger.responses[200] = { 
@@ -138,18 +141,36 @@ router.put('/:id/cancel',
         #swagger.description = '取消申請'
         #swagger.parameters['id'] = {
             in: 'path',
-            description: '申請id',
+            description: '申請編號',
             required: true,
             schema: "1"
         }
         #swagger.responses[200] = { 
             schema: 	
             {
-                "message": "申請已建立",
+                "message": "申請已取消",
                 "request_id": 7
             }
         } 
     */
-    controller.postCancelBookings);
+    controller.putCancelBookings);
+router.put('/:id/return', 
+    /*
+        #swagger.description = '歸還申請'
+        #swagger.parameters['id'] = {
+            in: 'path',
+            description: '申請編號',
+            required: true,
+            schema: "1"
+        }
+        #swagger.responses[200] = { 
+            schema: 	
+            {
+                "message": "教室已歸還",
+                "request_id": 7
+            }
+        } 
+    */
+    controller.putReturnBookings);
 
 module.exports = router;

@@ -5,7 +5,6 @@ exports.getAllBookings = (req, res) => {
       if (err) {
         console.error('Query error:', err);
       } else {
-        //console.log(rows);
         res.json(rows)
       }
     });
@@ -20,6 +19,20 @@ exports.updateBookings = (req, res) => {
         status,
         reject_reason
     } = req.body;
+    if ( !status )
+    {
+      return res.status(400).json({
+        error: `缺少必要欄位: status`
+      });
+    }
+    if ( status != 'approve' && !reject_reason )
+    {
+      return res.status(400).json({
+        error: `缺少必要欄位: reject_reason`
+      });
+    }
+    
+
     const value = [status,reject_reason,req.params.id];
     pool.query(sql,value,(err, result) => {
       if (err) {
@@ -36,10 +49,22 @@ exports.postAnnouncement = (req, res) => {
         expired_at
     } = req.body;
 
+    const missing = [];
+    if (!title) missing.push('user_id');
+    if (!content) missing.push('reason');
+    if (!expired_at) missing.push('expired_at');
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error: `缺少必要欄位: ${missing.join(', ')}`
+      });
+    }
+    /*
     // 簡單驗證
     if (!title || !content || !expired_at ) {
       return res.status(400).json({ error: '缺少必要欄位' });
     }
+      */
 
     // SQL INSERT
   const sql = `
@@ -67,11 +92,17 @@ exports.postBlacklist = (req, res) => {
       reason, 
       expired_at
     } = req.body;
+    const missing = [];
 
-    // 簡單驗證
-    if (!user_id || !reason || !expired_at ) {
-      return res.status(400).json({ error: '缺少必要欄位' });
-    }
+    if (!user_id) missing.push('user_id');
+    if (!reason) missing.push('reason');
+    if (!expired_at) missing.push('expired_at');
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error: `缺少必要欄位: ${missing.join(', ')}`
+      });
+}
 
     // SQL INSERT
   const sql = `

@@ -2,8 +2,8 @@ const swaggerAutogen = require('swagger-autogen')();
 
 const doc = {
   info: {
-    title: 'Sample Todo',
-    description: 'Description',
+    title: 'classroom-borrow-backend-API',
+    description: 'API-swagger',
   },
   host: 'localhost:3000',
 };
