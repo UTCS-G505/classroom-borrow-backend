@@ -593,53 +593,70 @@
           {
             "name": "body",
             "in": "body",
+            "description": "新增申請內容",
+            "required": true,
             "schema": {
               "type": "object",
               "properties": {
                 "classroom_id": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "C102"
                 },
                 "borrow_type": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "多次借用"
                 },
                 "start_date": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "2025-11-05"
                 },
                 "start_time": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "13:00"
                 },
                 "end_time": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "15:00"
                 },
                 "event_name": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "社團活動"
                 },
                 "people_count": {
-                  "example": "any"
+                  "type": "number",
+                  "example": 25
                 },
                 "teacher_name": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "王老師"
                 },
                 "reason": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "舉辦迎新活動"
                 },
                 "teacher_department": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "test1"
                 },
                 "teacher_phone": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "test2"
                 },
                 "teacher_email": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "test3"
                 },
                 "borrower_department": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "test4"
                 },
                 "borrower_phone": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "test5"
                 },
                 "borrower_email": {
-                  "example": "any"
+                  "type": "string",
+                  "example": "test5"
                 }
               }
             }
@@ -653,7 +670,7 @@
               "properties": {
                 "message": {
                   "type": "string",
-                  "example": "已取消"
+                  "example": "已新增申請"
                 },
                 "request_id": {
                   "type": "number",

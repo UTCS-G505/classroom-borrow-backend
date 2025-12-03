@@ -118,19 +118,19 @@ router.post('/',
                 "event_name": "社團活動",
                 "people_count": 25,
                 "teacher_name": "王老師",
-                "reason": "舉辦迎新活動"
+                "reason": "舉辦迎新活動",
                 "teacher_department": "test1",
                 "teacher_phone": "test2",
                 "teacher_email": "test3",
                 "borrower_department": "test4",
                 "borrower_phone": "test5",
-                "borrower_email": "test6"
+                "borrower_email": "test5"
             }
         } 
         #swagger.responses[200] = { 
             schema: 	
             {
-                "message": "已取消",
+                "message": "已新增申請",
                 "request_id": 0
             }
         } 
