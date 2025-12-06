@@ -30,6 +30,7 @@ exports.getBookingssByid = (req, res) => {
 exports.postBookings = (req, res) => {
     var 
     {
+      borrower_id,
       classroom_id,
       borrow_type,
       start_date,
@@ -47,6 +48,20 @@ exports.postBookings = (req, res) => {
       borrower_email
     } = req.body;
 
+    const missing = [];
+    if (!borrower_id) missing.push('borrower_id');
+    if (!classroom_id) missing.push('classroom_id');
+    if (!borrow_type) missing.push('borrow_type');
+    if (!start_date) missing.push('start_date');
+    if (!start_time) missing.push('start_time');
+    if (!end_time) missing.push('end_time');
+    if (!event_name) missing.push('event_name');
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        error: `缺少必要欄位: ${missing.join(', ')}`
+      });
+    }
 
     if ( !classroom_id || !borrow_type || !start_date || !start_time || !end_time || !event_name ) {
       return res.status(400).json({ error: '缺少必要欄位' });
@@ -72,10 +87,10 @@ exports.postBookings = (req, res) => {
         ? , ? , ? , ? ,
         ? , ? , ? ,
         ? , ? , ? )`
-    const testid = 4;
+    //const testid = 4;
     const values = 
     [
-      testid,
+      borrower_id,
       classroom_id, 
       borrow_type, 
       start_date, 

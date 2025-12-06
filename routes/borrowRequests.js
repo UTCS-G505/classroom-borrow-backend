@@ -110,6 +110,7 @@ router.post('/',
             description: '新增申請內容',
             required: true,
             schema: {
+                "borrower_id":1,
                 "classroom_id": "C102",
                 "borrow_type": "多次借用",
                 "start_date": "2025-11-05",

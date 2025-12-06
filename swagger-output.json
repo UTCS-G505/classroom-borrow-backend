@@ -598,6 +598,10 @@
             "schema": {
               "type": "object",
               "properties": {
+                "borrower_id": {
+                  "type": "number",
+                  "example": 1
+                },
                 "classroom_id": {
                   "type": "string",
                   "example": "C102"
@@ -938,6 +942,9 @@
                 "name": "main"
               }
             }
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       },

@@ -4,6 +4,7 @@ exports.getAllClassrooms = (req, res) => {
     pool.query(`SELECT * FROM classrooms `, (err, rows) => {
       if (err) {
         console.error('Query error:', err);
+        return res.status(500).json({ error: '資料庫錯誤' });
       } else {
         res.json(rows)
       }
@@ -34,10 +35,10 @@ exports.postClassrooms = (req, res) => {
 
     const missing = [];
     if (!classroom_id) missing.push('classroom_id');
-    if (!name) missing.push('type');
+    if (!name) missing.push('name');
     if (!capacity) missing.push('capacity');
-    if (!description) missing.push('tdescriptionype');
-    if (!image_url) missing.push('capimage_urlacity');
+    if (!description) missing.push('description');
+    if (!image_url) missing.push('image_url');
 
     if (missing.length > 0) {
       return res.status(400).json({
