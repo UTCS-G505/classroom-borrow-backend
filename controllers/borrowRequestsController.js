@@ -34,6 +34,7 @@ exports.postBookings = (req, res) => {
       classroom_id,
       borrow_type,
       start_date,
+      end_date,
       start_time,
       end_time,
       event_name,
@@ -47,6 +48,7 @@ exports.postBookings = (req, res) => {
       borrower_phone, 
       borrower_email
     } = req.body;
+    const time_slot = `${start_time}-${end_time}`;
 
     const missing = [];
     if (!borrower_id) missing.push('borrower_id');
@@ -54,7 +56,6 @@ exports.postBookings = (req, res) => {
     if (!borrow_type) missing.push('borrow_type');
     if (!start_date) missing.push('start_date');
     if (!start_time) missing.push('start_time');
-    if (!end_time) missing.push('end_time');
     if (!event_name) missing.push('event_name');
 
     if (missing.length > 0) {
@@ -62,16 +63,60 @@ exports.postBookings = (req, res) => {
         error: `缺少必要欄位: ${missing.join(', ')}`
       });
     }
-
+    
+    /*
     if ( !classroom_id || !borrow_type || !start_date || !start_time || !end_time || !event_name ) {
       return res.status(400).json({ error: '缺少必要欄位' });
     }
-    if ( !teacher_department )  teacher_department = "NaN";
-    if ( !teacher_phone )  teacher_phone = "NaN";
-    if ( !teacher_email )  teacher_email = "NaN";
-    if ( !borrower_department )  borrower_department = "NaN";
-    if ( !borrower_phone )  borrower_phone = "NaN";
-    if ( !borrower_email )  borrower_email = "NaN";
+    */
+
+    //===========================================
+    const dayjs = require('dayjs');
+
+    // 假設 start_date = '2025-11-05', end_date = '2025-11-10'
+    let start = dayjs(start_date);
+    let end = dayjs( (!end_date) ? start_date : end_date);
+
+    
+    for (let d = start; d.isBefore(end) || d.isSame(end); d = d.add(1, 'day')) {
+      const checkSql = `
+        SELECT *
+        FROM schedule
+        WHERE classroom_id = ?
+          AND date = ?
+          AND time_slot = ?
+      `;
+
+      const values = [
+        classroom_id,
+        d.format('YYYY-MM-DD'),
+        time_slot // 組合成字串去比對
+      ];
+
+      pool.query(checkSql, values, (err, rows) => {
+        if (err) {
+          console.error('檢查失敗:', err);
+          return;
+        }
+
+        if (rows.length > 0) {
+          console.log(`日期 ${d.format('YYYY-MM-DD')} 時段已被占用`);
+          return res.status(500).json({ error: '時段已滿' });
+        } else {
+          console.log(`日期 ${d.format('YYYY-MM-DD')} 可用`);
+        }
+      });
+    }
+
+    //===========================================
+
+    
+    if ( !teacher_department )  teacher_department = "";
+    if ( !teacher_phone )  teacher_phone = "";
+    if ( !teacher_email )  teacher_email = "";
+    if ( !borrower_department )  borrower_department = "";
+    if ( !borrower_phone )  borrower_phone = "";
+    if ( !borrower_email )  borrower_email = "";
 
     // SQL INSERT
     const sql = `
@@ -94,7 +139,7 @@ exports.postBookings = (req, res) => {
       classroom_id, 
       borrow_type, 
       start_date, 
-      null, 
+      end_date,
       start_time, 
       end_time,
       event_name, 
@@ -110,14 +155,22 @@ exports.postBookings = (req, res) => {
       borrower_phone, 
       borrower_email
     ]
+
+
     
+    var req_id;
+
     pool.query(sql,values,(err, result) => {
       if (err) {
         console.error('新增資料失敗:', err);
         return res.status(500).json({ error: '資料庫錯誤' });
       }
+      req_id = result.insertId;
       res.json({ message: '申請已建立', request_id: result.insertId });
     });
+
+  
+
 }
 
 exports.putCancelBookings = (req, res) => {

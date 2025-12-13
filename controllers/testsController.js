@@ -10,3 +10,14 @@ exports.test1 = (req, res) => {
     });
     
 }
+
+
+exports.test2 = (req, res) => {
+    pool.query(`SELECT * FROM schedule `, (err, rows) => {
+      if (err) {
+        console.error('Query error:', err);
+      } else {
+        res.json(rows);
+      }
+    });
+}

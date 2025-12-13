@@ -267,6 +267,12 @@
           "400": {
             "description": "Bad Request"
           },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
           "500": {
             "description": "Internal Server Error"
           }
@@ -611,6 +617,10 @@
                   "example": "多次借用"
                 },
                 "start_date": {
+                  "type": "string",
+                  "example": "2025-11-05"
+                },
+                "end_date": {
                   "type": "string",
                   "example": "2025-11-05"
                 },

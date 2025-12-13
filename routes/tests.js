@@ -8,3 +8,9 @@ router.get('/1',
     controller.test1);
 
 module.exports = router;
+
+router.get('/2', 
+    
+    controller.test2);
+
+module.exports = router;
