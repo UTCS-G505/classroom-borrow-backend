@@ -70,7 +70,7 @@ router.put('/bookings/:id/status',
             description: '新增申請內容',
             required: true,
             schema: {
-                "status": "核准",
+                "status": "approved",
                 "reject_reason": "test1"
             }
         } 

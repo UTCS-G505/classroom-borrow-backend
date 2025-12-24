@@ -48,7 +48,6 @@ exports.postBookings = (req, res) => {
       borrower_phone, 
       borrower_email
     } = req.body;
-    const time_slot = `${start_time}-${end_time}`;
 
     const missing = [];
     if (!borrower_id) missing.push('borrower_id');
@@ -73,40 +72,47 @@ exports.postBookings = (req, res) => {
     //===========================================
     const dayjs = require('dayjs');
 
-    // 假設 start_date = '2025-11-05', end_date = '2025-11-10'
-    let start = dayjs(start_date);
-    let end = dayjs( (!end_date) ? start_date : end_date);
+    // 1. 準備日期與輸入時間
+    // 假設輸入: start_time (a), end_time (b)
+    let sDate = dayjs(start_date).format('YYYY-MM-DD');
+    let eDate = dayjs(!end_date ? start_date : end_date).format('YYYY-MM-DD');
 
-    
-    for (let d = start; d.isBefore(end) || d.isSame(end); d = d.add(1, 'day')) {
-      const checkSql = `
+    // 2. SQL 邏輯：
+    // 我們利用 SUBSTRING_INDEX 在查詢當下把 "09:00-10:00" 拆成 "09:00" 和 "10:00"
+    // 然後套用重疊公式： (DB起始 < 輸入結束) AND (DB結束 > 輸入起始)
+    const checkSql = `
         SELECT *
         FROM schedule
         WHERE classroom_id = ?
-          AND date = ?
-          AND time_slot = ?
-      `;
+          AND date BETWEEN ? AND ?
+          AND SUBSTRING_INDEX(time_slot, '-', 1) < ?   -- DB的 A < 輸入的 b
+          AND SUBSTRING_INDEX(time_slot, '-', -1) > ?  -- DB的 B > 輸入的 a
+    `;
 
-      const values = [
+    const chkvalues = [
         classroom_id,
-        d.format('YYYY-MM-DD'),
-        time_slot // 組合成字串去比對
-      ];
+        sDate,       // 日期區間開始
+        eDate,       // 日期區間結束
+        end_time,    // 輸入的結束時間 (b)，用來跟 DB 的 A 比
+        start_time   // 輸入的開始時間 (a)，用來跟 DB 的 B 比
+    ];
 
-      pool.query(checkSql, values, (err, rows) => {
-        if (err) {
-          console.error('檢查失敗:', err);
-          return;
-        }
-
-        if (rows.length > 0) {
-          console.log(`日期 ${d.format('YYYY-MM-DD')} 時段已被占用`);
-          return res.status(500).json({ error: '時段已滿' });
-        } else {
-          console.log(`日期 ${d.format('YYYY-MM-DD')} 可用`);
-        }
-      });
+    pool.query(checkSql, chkvalues, (err, rows) => {
+    if (err) {
+        console.error('檢查失敗:', err);
+        return res.status(500).json({ error: '資料庫檢查錯誤' });
     }
+
+    // 如果抓到資料，代表有「重疊」，也就是衝突
+    if (rows.length > 0) {
+        // 印出撞到哪一筆
+        console.log(`時段衝突！輸入的 ${start_time}~${end_time} 與現有的 ${rows[0].time_slot} 重疊`);
+        return res.status(500).json({ error: '該時段已滿，與現有行程衝突' });
+    } else {
+        console.log('檢查通過，時段可用');    
+    }
+});
+
 
     //===========================================
 
