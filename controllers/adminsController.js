@@ -10,7 +10,6 @@ exports.getAllBookings = (req, res) => {
       }
     });
 }
-// 輔助函式：取得日期範圍內的所有日期字串 (YYYY-MM-DD)
 function getDatesInRange(startDate, endDate) {
     const date = new Date(startDate);
     const end = new Date(endDate);
@@ -48,14 +47,14 @@ exports.updateBookings = (req, res) => {
     }
 
     // SQL 查詢語句
-    const selectRequestSql = 'SELECT * FROM borrow_requests WHERE request_id = ?';
+    // 修改點：加入 FOR UPDATE 鎖定該筆申請單，避免重複處理
+    const selectRequestSql = 'SELECT * FROM borrow_requests WHERE request_id = ? FOR UPDATE';
     
     // 更新申請單狀態 (ENUM: '核准', '退件', ...)
     const updateRequestSql = 'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?';
     
     // 檢查衝突 (檢查 schedule 表 檢查同一間教室、同一天，且時間重疊的紀錄)
-    // 時間重疊 = (已存開始 < 新結束) AND (已存結束 > 新開始)
-    // 使用 SUBSTRING_INDEX 切割字串比對
+    // 修改點：加入 FOR UPDATE 以鎖定查詢結果或間隙，防止 Race Condition
     const checkConflictSql = `
         SELECT * FROM schedule 
         WHERE classroom_id = ? 
@@ -63,117 +62,150 @@ exports.updateBookings = (req, res) => {
           AND SUBSTRING_INDEX(time_slot, '-', 1) < ? 
           AND SUBSTRING_INDEX(time_slot, '-', -1) > ?
           AND status = '已預約'
+        FOR UPDATE
     `;
 
     // 寫入排程 (ENUM: '已預約')
-    // 維持寫入 time_slot (格式為 HH:MM:SS-HH:MM:SS)
     const insertScheduleSql = `
         INSERT INTO schedule (classroom_id, date, time_slot, booked_by, borrow_request_id, event_name, status)
         VALUES ?
     `;
 
-    // 2. 查詢該筆申請單
-    pool.query(selectRequestSql, [request_id], (err, results) => {
-        if (err) return res.status(500).json({ error: '資料庫錯誤' });
-        if (results.length === 0) return res.status(404).json({ error: '找不到該筆預約申請' });
+    // 取得資料庫連線以啟動交易
+    pool.getConnection((err, connection) => {
+        if (err) return res.status(500).json({ error: '無法取得資料庫連線' });
 
-        const requestData = results[0];
+        // 啟動交易
+        connection.beginTransaction(err => {
+            if (err) {
+                connection.release();
+                return res.status(500).json({ error: '交易啟動失敗' });
+            }
 
-        // 檢查是否已經處理過 (比對中文 ENUM)
-        if (requestData.status === '核准' || requestData.status === '退件') {
-            return res.status(400).json({ error: `此申請單已處理過 (${requestData.status})` });
-        }
-
-        // 定義狀態更新函式 (最後一步驟)
-        const performStatusUpdate = () => {
-            // 轉換前端 status 為資料庫中文 ENUM
-            const dbStatus = status === 'approved' ? '核准' : '退件';
-            const reason = status === 'approved' ? null : reject_reason;
-
-            pool.query(updateRequestSql, [dbStatus, reason, request_id], (err) => {
-                if (err) return res.status(500).json({ error: '資料庫錯誤 (Update Status)' });
-                res.json({ success: true, message: `已完成: ${dbStatus}`, status: dbStatus });
-            });
-        };
-
-        // 3. 如果是 'approved'，需要檢查衝突並寫入 schedule
-        if (status === 'approved') {
-            // 取得日期範圍 (end_date 若為 NULL 則視為單日)
-            const sDateRaw = requestData.start_date;
-            const eDateRaw = requestData.end_date || requestData.start_date;
-
-            const targetDates = getDatesInRange(sDateRaw, eDateRaw);
-            if (targetDates.length === 0) return res.status(400).json({ error: '日期範圍無效' });
-
-            // 處理時間格式 (MySQL TIME 可能是 "13:00:00")
-            // 修改處：將 substring(0, 5) 改為 substring(0, 8) 以保留秒數 (HH:MM:SS)
-            const formatTime = (t) => String(t).substring(0, 8); 
-            const startTimeStr = formatTime(requestData.start_time);
-            const endTimeStr = formatTime(requestData.end_time);
-
-            // 檢查所有日期的衝突 (這裡使用 Promise.all 來處理非同步迴圈查詢)
-            const checkPromises = targetDates.map(dateStr => {
-                return new Promise((resolve, reject) => {
-                    pool.query(checkConflictSql, [
-                        requestData.classroom_id,
-                        dateStr,
-                        endTimeStr,   // New End Time (HH:MM:SS)
-                        startTimeStr  // New Start Time (HH:MM:SS)
-                    ], (err, conflicts) => {
-                        if (err) reject(err);
-                        else resolve({ date: dateStr, conflicts });
-                    });
+            // 定義回滾並釋放連線的輔助函式
+            const rollbackAndRelease = (msg, statusCode = 500, jsonBody = null) => {
+                connection.rollback(() => {
+                    connection.release();
+                    res.status(statusCode).json(jsonBody || { error: msg });
                 });
-            });
+            };
 
-            Promise.all(checkPromises)
-                .then(results => {
-                    // 過濾出有衝突的日期
-                    const conflictResult = results.find(r => r.conflicts.length > 0);
-                    
-                    if (conflictResult) {
-                        return res.status(409).json({ 
-                            error: '該時段已被預約', 
-                            conflictDate: conflictResult.date,
-                            conflictDetails: conflictResult.conflicts[0] 
+            // 2. 查詢該筆申請單 (使用 connection 而非 pool)
+            connection.query(selectRequestSql, [request_id], (err, results) => {
+                if (err) return rollbackAndRelease('資料庫錯誤', 500);
+                if (results.length === 0) return rollbackAndRelease('找不到該筆預約申請', 404);
+
+                const requestData = results[0];
+
+                // 檢查是否已經處理過
+                if (requestData.status === '核准' || requestData.status === '退件') {
+                    return rollbackAndRelease(`此申請單已處理過 (${requestData.status})`, 400);
+                }
+
+                // 準備更新狀態的邏輯
+                const dbStatus = status === 'approved' ? '核准' : '退件';
+                const reason = status === 'approved' ? null : reject_reason;
+
+                // 3. 如果是 'approved'，需要檢查衝突並寫入 schedule
+                if (status === 'approved') {
+                    // 取得日期範圍
+                    const sDateRaw = requestData.start_date;
+                    const eDateRaw = requestData.end_date || requestData.start_date;
+
+                    const targetDates = getDatesInRange(sDateRaw, eDateRaw);
+                    if (targetDates.length === 0) return rollbackAndRelease('日期範圍無效', 400);
+
+                    // 處理時間格式
+                    const formatTime = (t) => String(t).substring(0, 8); 
+                    const startTimeStr = formatTime(requestData.start_time);
+                    const endTimeStr = formatTime(requestData.end_time);
+
+                    // 檢查所有日期的衝突 (在同一個 connection 內執行)
+                    const checkPromises = targetDates.map(dateStr => {
+                        return new Promise((resolve, reject) => {
+                            connection.query(checkConflictSql, [
+                                requestData.classroom_id,
+                                dateStr,
+                                endTimeStr,   
+                                startTimeStr  
+                            ], (err, conflicts) => {
+                                if (err) reject(err);
+                                else resolve({ date: dateStr, conflicts });
+                            });
                         });
-                    }
-
-                    // 無衝突，準備寫入 schedule
-                    // 修改後格式範例： "13:00:00-15:00:00"
-                    const timeSlotString = `${startTimeStr}-${endTimeStr}`;
-                    const scheduleStatus = '已預約'; // 對應 schedule 表的 ENUM
-
-                    // 準備批量插入的資料陣列
-                    const valuesToInsert = targetDates.map(dateStr => [
-                        requestData.classroom_id,
-                        dateStr,
-                        timeSlotString,
-                        requestData.borrower_id, // 對應 users 表 user_id
-                        request_id,
-                        requestData.event_name,
-                        scheduleStatus
-                    ]);
-
-                    pool.query(insertScheduleSql, [valuesToInsert], (err) => {
-                        if (err) {
-                            console.error('寫入排程失敗:', err);
-                            return res.status(500).json({ error: '寫入排程失敗', db_error: err.message });
-                        }
-                        // 寫入成功後，更新 borrow_requests 狀態
-                        performStatusUpdate();
                     });
-                })
-                .catch(err => {
-                    return res.status(500).json({ error: '檢查衝突時發生錯誤'});
-                });
 
-        } else {
-            // 如果是 rejected，直接更新狀態即可
-            performStatusUpdate();
-        }
+                    Promise.all(checkPromises)
+                        .then(results => {
+                            // 過濾出有衝突的日期
+                            const conflictResult = results.find(r => r.conflicts.length > 0);
+                            
+                            if (conflictResult) {
+                                return rollbackAndRelease(null, 409, { 
+                                    error: '該時段已被預約', 
+                                    conflictDate: conflictResult.date,
+                                    conflictDetails: conflictResult.conflicts[0] 
+                                });
+                            }
+
+                            // 無衝突，準備寫入 schedule
+                            const timeSlotString = `${startTimeStr}-${endTimeStr}`;
+                            const scheduleStatus = '已預約';
+
+                            const valuesToInsert = targetDates.map(dateStr => [
+                                requestData.classroom_id,
+                                dateStr,
+                                timeSlotString,
+                                requestData.borrower_id,
+                                request_id,
+                                requestData.event_name,
+                                scheduleStatus
+                            ]);
+
+                            connection.query(insertScheduleSql, [valuesToInsert], (err) => {
+                                if (err) {
+                                    console.error('寫入排程失敗:', err);
+                                    return rollbackAndRelease('寫入排程失敗', 500, { error: '寫入排程失敗', db_error: err.message });
+                                }
+
+                                // 寫入成功後，更新 borrow_requests 狀態
+                                connection.query(updateRequestSql, [dbStatus, reason, request_id], (err) => {
+                                    if (err) return rollbackAndRelease('資料庫錯誤 (Update Status)', 500);
+                                    
+                                    // 提交交易 (Commit)
+                                    connection.commit((err) => {
+                                        if (err) return rollbackAndRelease('交易提交失敗', 500);
+                                        
+                                        connection.release();
+                                        res.json({ success: true, message: `已完成: ${dbStatus}`, status: dbStatus });
+                                    });
+                                });
+                            });
+                        })
+                        .catch(err => {
+                            rollbackAndRelease('檢查衝突時發生錯誤', 500);
+                        });
+
+                } else {
+                    // 如果是 rejected，直接更新狀態
+                    connection.query(updateRequestSql, [dbStatus, reason, request_id], (err) => {
+                        if (err) return rollbackAndRelease('資料庫錯誤 (Update Status)', 500);
+                        
+                        // 提交交易 (Commit)
+                        connection.commit((err) => {
+                            if (err) return rollbackAndRelease('交易提交失敗', 500);
+                            
+                            connection.release();
+                            res.json({ success: true, message: `已完成: ${dbStatus}`, status: dbStatus });
+                        });
+                    });
+                }
+            });
+        });
     });
 };
+
+
 exports.postAnnouncement = (req, res) => {
     const {
         title,
