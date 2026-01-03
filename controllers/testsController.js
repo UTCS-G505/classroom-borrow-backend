@@ -21,3 +21,13 @@ exports.test2 = (req, res) => {
       }
     });
 }
+
+exports.test3 = (req, res) => {
+    pool.query('SELECT * FROM borrow_requests', (err, rows) => {
+      if (err) {
+        console.error('Query error:', err);
+      } else {
+        res.json(rows);
+      }
+    });
+}

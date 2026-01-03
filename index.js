@@ -49,7 +49,7 @@ app.use('/classrooms',
   require('./routes/classrooms'));
   
 app.use('/test', 
-  // #swagger.ignore = false
+  // #swagger.ignore = true
   // #swagger.tags = ['測試用']
   require('./routes/tests'));
 

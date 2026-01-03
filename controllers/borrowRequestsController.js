@@ -110,71 +110,70 @@ exports.postBookings = (req, res) => {
         return res.status(500).json({ error: '該時段已滿，與現有行程衝突' });
     } else {
         console.log('檢查通過，時段可用');    
+
+        if ( !teacher_department )  teacher_department = "";
+        if ( !teacher_phone )  teacher_phone = "";
+        if ( !teacher_email )  teacher_email = "";
+        if ( !borrower_department )  borrower_department = "";
+        if ( !borrower_phone )  borrower_phone = "";
+        if ( !borrower_email )  borrower_email = "";
+
+        // SQL INSERT
+        const sql = `
+            INSERT INTO borrow_requests (
+            borrower_id, classroom_id, borrow_type, start_date, end_date,
+            start_time, end_time, event_name, people_count, 
+            teacher_name, reason, status, reject_reason,
+            teacher_department, teacher_phone, teacher_email,
+            borrower_department, borrower_phone, borrower_email
+            ) VALUES (
+            ? , ? , ? , ? , ? , 
+            ? , ? , ? , ? ,
+            ? , ? , ? , ? ,
+            ? , ? , ? ,
+            ? , ? , ? )`
+        //const testid = 4;
+        const values = 
+        [
+          borrower_id,
+          classroom_id, 
+          borrow_type, 
+          start_date, 
+          end_date,
+          start_time, 
+          end_time,
+          event_name, 
+          people_count, 
+          teacher_name, 
+          reason, 
+          '審核中', 
+          "審核中",
+          teacher_department, 
+          teacher_phone, 
+          teacher_email,
+          borrower_department, 
+          borrower_phone, 
+          borrower_email
+        ]
+
+
+        
+        var req_id;
+
+        pool.query(sql,values,(err, result) => {
+          if (err) {
+            console.error('新增資料失敗:', err);
+            return res.status(500).json({ error: '資料庫錯誤' });
+          }
+          req_id = result.insertId;
+          res.json({ message: '申請已建立', request_id: result.insertId });
+        });
+
     }
 });
 
-
-    //===========================================
-
+ 
     
-    if ( !teacher_department )  teacher_department = "";
-    if ( !teacher_phone )  teacher_phone = "";
-    if ( !teacher_email )  teacher_email = "";
-    if ( !borrower_department )  borrower_department = "";
-    if ( !borrower_phone )  borrower_phone = "";
-    if ( !borrower_email )  borrower_email = "";
-
-    // SQL INSERT
-    const sql = `
-        INSERT INTO borrow_requests (
-        borrower_id, classroom_id, borrow_type, start_date, end_date,
-        start_time, end_time, event_name, people_count, 
-        teacher_name, reason, status, reject_reason,
-        teacher_department, teacher_phone, teacher_email,
-        borrower_department, borrower_phone, borrower_email
-        ) VALUES (
-        ? , ? , ? , ? , ? , 
-        ? , ? , ? , ? ,
-        ? , ? , ? , ? ,
-        ? , ? , ? ,
-        ? , ? , ? )`
-    //const testid = 4;
-    const values = 
-    [
-      borrower_id,
-      classroom_id, 
-      borrow_type, 
-      start_date, 
-      end_date,
-      start_time, 
-      end_time,
-      event_name, 
-      people_count, 
-      teacher_name, 
-      reason, 
-      '審核中', 
-      "審核中",
-      teacher_department, 
-      teacher_phone, 
-      teacher_email,
-      borrower_department, 
-      borrower_phone, 
-      borrower_email
-    ]
-
-
-    
-    var req_id;
-
-    pool.query(sql,values,(err, result) => {
-      if (err) {
-        console.error('新增資料失敗:', err);
-        return res.status(500).json({ error: '資料庫錯誤' });
-      }
-      req_id = result.insertId;
-      res.json({ message: '申請已建立', request_id: result.insertId });
-    });
-
   
 
 }

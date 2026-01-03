@@ -1,4 +1,5 @@
 const pool = require('../db');
+const dayjs = require('dayjs');
 
 exports.getAllBookings = (req, res) => {
     pool.query(`SELECT * FROM borrow_requests`, (err, rows) => {
@@ -9,7 +10,6 @@ exports.getAllBookings = (req, res) => {
       }
     });
 }
-const dayjs = require('dayjs');
 // 輔助函式：取得日期範圍內的所有日期字串 (YYYY-MM-DD)
 function getDatesInRange(startDate, endDate) {
     const date = new Date(startDate);
@@ -53,9 +53,9 @@ exports.updateBookings = (req, res) => {
     // 更新申請單狀態 (ENUM: '核准', '退件', ...)
     const updateRequestSql = 'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?';
     
-    // 檢查衝突 (檢查 schedule 表)
-    // 邏輯：檢查同一間教室、同一天，且時間重疊的紀錄
-    // 時間重疊公式：(已存開始 < 新結束) AND (已存結束 > 新開始)
+    // 檢查衝突 (檢查 schedule 表 檢查同一間教室、同一天，且時間重疊的紀錄)
+    // 時間重疊 = (已存開始 < 新結束) AND (已存結束 > 新開始)
+    // 使用 SUBSTRING_INDEX 切割字串比對
     const checkConflictSql = `
         SELECT * FROM schedule 
         WHERE classroom_id = ? 
@@ -66,6 +66,7 @@ exports.updateBookings = (req, res) => {
     `;
 
     // 寫入排程 (ENUM: '已預約')
+    // 維持寫入 time_slot (格式為 HH:MM:SS-HH:MM:SS)
     const insertScheduleSql = `
         INSERT INTO schedule (classroom_id, date, time_slot, booked_by, borrow_request_id, event_name, status)
         VALUES ?
@@ -73,7 +74,7 @@ exports.updateBookings = (req, res) => {
 
     // 2. 查詢該筆申請單
     pool.query(selectRequestSql, [request_id], (err, results) => {
-        if (err) return res.status(500).json({ error: '資料庫錯誤', details: err });
+        if (err) return res.status(500).json({ error: '資料庫錯誤' });
         if (results.length === 0) return res.status(404).json({ error: '找不到該筆預約申請' });
 
         const requestData = results[0];
@@ -104,9 +105,9 @@ exports.updateBookings = (req, res) => {
             const targetDates = getDatesInRange(sDateRaw, eDateRaw);
             if (targetDates.length === 0) return res.status(400).json({ error: '日期範圍無效' });
 
-            // 處理時間格式 (MySQL TIME 可能是 "13:00:00"，轉為 "13:00")
-            // 注意：requestData.start_time 可能是字串或物件，視 driver 設定而定，這裡強制轉字串切割
-            const formatTime = (t) => String(t).substring(0, 5); 
+            // 處理時間格式 (MySQL TIME 可能是 "13:00:00")
+            // 修改處：將 substring(0, 5) 改為 substring(0, 8) 以保留秒數 (HH:MM:SS)
+            const formatTime = (t) => String(t).substring(0, 8); 
             const startTimeStr = formatTime(requestData.start_time);
             const endTimeStr = formatTime(requestData.end_time);
 
@@ -116,8 +117,8 @@ exports.updateBookings = (req, res) => {
                     pool.query(checkConflictSql, [
                         requestData.classroom_id,
                         dateStr,
-                        endTimeStr,   // New End Time
-                        startTimeStr  // New Start Time
+                        endTimeStr,   // New End Time (HH:MM:SS)
+                        startTimeStr  // New Start Time (HH:MM:SS)
                     ], (err, conflicts) => {
                         if (err) reject(err);
                         else resolve({ date: dateStr, conflicts });
@@ -139,6 +140,7 @@ exports.updateBookings = (req, res) => {
                     }
 
                     // 無衝突，準備寫入 schedule
+                    // 修改後格式範例： "13:00:00-15:00:00"
                     const timeSlotString = `${startTimeStr}-${endTimeStr}`;
                     const scheduleStatus = '已預約'; // 對應 schedule 表的 ENUM
 
@@ -163,7 +165,7 @@ exports.updateBookings = (req, res) => {
                     });
                 })
                 .catch(err => {
-                    return res.status(500).json({ error: '檢查衝突時發生錯誤', details: err });
+                    return res.status(500).json({ error: '檢查衝突時發生錯誤'});
                 });
 
         } else {

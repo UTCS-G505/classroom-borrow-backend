@@ -1223,38 +1223,6 @@
           }
         }
       }
-    },
-    "/test/1": {
-      "get": {
-        "tags": [
-          "測試用"
-        ],
-        "description": "",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/test/2": {
-      "get": {
-        "tags": [
-          "測試用"
-        ],
-        "description": "",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
     }
   }
 }
