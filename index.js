@@ -7,7 +7,7 @@ const db = require('./db'); // 保持資料庫連線，之後抓個資或紀錄�
 
 const app = express();
 // 配合您提供的程式碼，預設使用 8080，如果 .env 有設定則優先使用 .env
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 3000;
 
 // === 設定 ===
 // 1. 【SSO URL】
