@@ -13,14 +13,18 @@ exports.getAllBookings = (req, res) => {
 function getDatesInRange(startDate, endDate) {
     const date = new Date(startDate);
     const end = new Date(endDate);
-
+    const today = new Date();
+    
     if (isNaN(date.getTime()) || isNaN(end.getTime())) return [];
 
     // 設定為當天 00:00:00 避免時區導致的誤差
     date.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
 
+    if ( today > date ) return [];
     if (end < date) return [];
+
 
     const dateList = [];
     while (date <= end) {
