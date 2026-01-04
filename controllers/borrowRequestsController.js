@@ -81,13 +81,15 @@ exports.postBookings = (req, res) => {
   // 2. SQL 邏輯：
   // 我們利用 SUBSTRING_INDEX 在查詢當下把 "09:00-10:00" 拆成 "09:00" 和 "10:00"
   // 然後套用重疊公式： (DB起始 < 輸入結束) AND (DB結束 > 輸入起始)
+  // 修改點：加入 FOR UPDATE 以鎖定查詢結果或間隙，防止 Race Condition
   const checkSql = `
         SELECT *
         FROM schedule
         WHERE classroom_id = ?
           AND date BETWEEN ? AND ?
-          AND SUBSTRING_INDEX(time_slot, '-', 1) < ?   -- DB的 A < 輸入的 b
-          AND SUBSTRING_INDEX(time_slot, '-', -1) > ?  -- DB的 B > 輸入的 a
+          AND SUBSTRING_INDEX(time_slot, '-', 1) < ?
+          AND SUBSTRING_INDEX(time_slot, '-', -1) > ?
+        FOR UPDATE
     `;
 
   const chkvalues = [
@@ -98,74 +100,103 @@ exports.postBookings = (req, res) => {
     start_time, // 輸入的開始時間 (a)，用來跟 DB 的 B 比
   ];
 
-  pool.query(checkSql, chkvalues, (err, rows) => {
-    if (err) {
-      console.error('檢查失敗:', err);
-      return res.status(500).json({ error: '資料庫檢查錯誤' });
-    }
+  // SQL INSERT
+  const insertSql = `
+        INSERT INTO borrow_requests (
+        borrower_id, classroom_id, borrow_type, start_date, end_date,
+        start_time, end_time, event_name, people_count, 
+        teacher_name, reason, status, reject_reason,
+        teacher_department, teacher_phone, teacher_email,
+        borrower_department, borrower_phone, borrower_email
+        ) VALUES (
+        ? , ? , ? , ? , ? , 
+        ? , ? , ? , ? ,
+        ? , ? , ? , ? ,
+        ? , ? , ? ,
+        ? , ? , ? )`;
 
-    // 如果抓到資料，代表有「重疊」，也就是衝突
-    if (rows.length > 0) {
-      // 印出撞到哪一筆
-      console.log(
-        `時段衝突！輸入的 ${start_time}~${end_time} 與現有的 ${rows[0].time_slot} 重疊`
-      );
-      return res.status(409).json({ error: '該時段已滿，與現有行程衝突' });
-    } else {
-      console.log('檢查通過，時段可用');
+  // 取得資料庫連線以啟動交易
+  pool.getConnection((err, connection) => {
+    if (err) return res.status(500).json({ error: '無法取得資料庫連線' });
 
-      if (!teacher_department) teacher_department = '';
-      if (!teacher_phone) teacher_phone = '';
-      if (!teacher_email) teacher_email = '';
-      if (!borrower_department) borrower_department = '';
-      if (!borrower_phone) borrower_phone = '';
-      if (!borrower_email) borrower_email = '';
+    // 啟動交易
+    connection.beginTransaction((err) => {
+      if (err) {
+        connection.release();
+        return res.status(500).json({ error: '交易啟動失敗' });
+      }
 
-      // SQL INSERT
-      const sql = `
-            INSERT INTO borrow_requests (
-            borrower_id, classroom_id, borrow_type, start_date, end_date,
-            start_time, end_time, event_name, people_count, 
-            teacher_name, reason, status, reject_reason,
-            teacher_department, teacher_phone, teacher_email,
-            borrower_department, borrower_phone, borrower_email
-            ) VALUES (
-            ? , ? , ? , ? , ? , 
-            ? , ? , ? , ? ,
-            ? , ? , ? , ? ,
-            ? , ? , ? ,
-            ? , ? , ? )`;
+      // 定義回滾並釋放連線的輔助函式
+      const rollbackAndRelease = (msg, statusCode = 500, jsonBody = null) => {
+        connection.rollback(() => {
+          connection.release();
+          res.status(statusCode).json(jsonBody || { error: msg });
+        });
+      };
 
-      const values = [
-        borrower_id,
-        classroom_id,
-        borrow_type,
-        start_date,
-        end_date,
-        start_time,
-        end_time,
-        event_name,
-        people_count,
-        teacher_name,
-        reason,
-        '審核中',
-        '審核中',
-        teacher_department,
-        teacher_phone,
-        teacher_email,
-        borrower_department,
-        borrower_phone,
-        borrower_email,
-      ];
-
-      pool.query(sql, values, (err, result) => {
+      // 使用 connection 執行查詢以保持交易一致性
+      connection.query(checkSql, chkvalues, (err, rows) => {
         if (err) {
-          console.error('新增資料失敗:', err);
-          return res.status(500).json({ error: '資料庫錯誤' });
+          console.error('檢查失敗:', err);
+          return rollbackAndRelease('資料庫檢查錯誤', 500);
         }
-        res.json({ message: '申請已建立', request_id: result.insertId });
+
+        // 如果抓到資料，代表有「重疊」，也就是衝突
+        if (rows.length > 0) {
+          // 印出撞到哪一筆
+          console.log(
+            `時段衝突！輸入的 ${start_time}~${end_time} 與現有的 ${rows[0].time_slot} 重疊`
+          );
+          return rollbackAndRelease('該時段已滿，與現有行程衝突', 409);
+        }
+
+        console.log('檢查通過，時段可用');
+
+        if (!teacher_department) teacher_department = '';
+        if (!teacher_phone) teacher_phone = '';
+        if (!teacher_email) teacher_email = '';
+        if (!borrower_department) borrower_department = '';
+        if (!borrower_phone) borrower_phone = '';
+        if (!borrower_email) borrower_email = '';
+
+        const values = [
+          borrower_id,
+          classroom_id,
+          borrow_type,
+          start_date,
+          end_date,
+          start_time,
+          end_time,
+          event_name,
+          people_count,
+          teacher_name,
+          reason,
+          '審核中',
+          '審核中',
+          teacher_department,
+          teacher_phone,
+          teacher_email,
+          borrower_department,
+          borrower_phone,
+          borrower_email,
+        ];
+
+        connection.query(insertSql, values, (err, result) => {
+          if (err) {
+            console.error('新增資料失敗:', err);
+            return rollbackAndRelease('資料庫錯誤', 500);
+          }
+
+          // 提交交易 (Commit)
+          connection.commit((err) => {
+            if (err) return rollbackAndRelease('交易提交失敗', 500);
+
+            connection.release();
+            res.json({ message: '申請已建立', request_id: result.insertId });
+          });
+        });
       });
-    }
+    });
   });
 };
 
