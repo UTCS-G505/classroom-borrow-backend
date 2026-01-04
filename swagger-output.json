@@ -7,19 +7,13 @@
   },
   "host": "localhost:3000",
   "basePath": "/",
-  "schemes": [
-    "http"
-  ],
+  "schemes": ["http"],
   "paths": {
     "/bookings/schedule/": {
       "get": {
-        "tags": [
-          "schedule"
-        ],
+        "tags": ["schedule"],
         "description": "取得特定時間教室的行程",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "date",
@@ -97,13 +91,9 @@
     },
     "/admin/bookings": {
       "get": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "description": "取得所有申請",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "responses": {
           "200": {
             "description": "OK",
@@ -205,13 +195,9 @@
     },
     "/admin/bookings/{id}/status": {
       "put": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "description": "審核特定申請",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "id",
@@ -281,13 +267,9 @@
     },
     "/admin/announcements": {
       "post": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "description": "新增公告",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "body",
@@ -344,13 +326,9 @@
     },
     "/admin/blacklist": {
       "post": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "description": "新增黑名單",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "body",
@@ -407,13 +385,9 @@
     },
     "/admin/blacklist/{id}": {
       "delete": {
-        "tags": [
-          "admin"
-        ],
+        "tags": ["admin"],
         "description": "刪除黑名單",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "id",
@@ -455,13 +429,9 @@
     },
     "/announcements/": {
       "get": {
-        "tags": [
-          "announcement"
-        ],
+        "tags": ["announcement"],
         "description": "取得所有公告",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "responses": {
           "200": {
             "description": "OK",
@@ -499,13 +469,9 @@
     },
     "/announcements/{id}": {
       "get": {
-        "tags": [
-          "announcement"
-        ],
+        "tags": ["announcement"],
         "description": "取得特定公告",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "id",
@@ -559,13 +525,9 @@
     },
     "/bookings/": {
       "get": {
-        "tags": [
-          "bookings"
-        ],
+        "tags": ["bookings"],
         "description": "查看自己的申請",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "id",
@@ -588,13 +550,9 @@
         }
       },
       "post": {
-        "tags": [
-          "bookings"
-        ],
+        "tags": ["bookings"],
         "description": "新增申請",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "body",
@@ -707,13 +665,9 @@
     },
     "/bookings/{id}": {
       "get": {
-        "tags": [
-          "bookings"
-        ],
+        "tags": ["bookings"],
         "description": "取得特定申請",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "id",
@@ -807,13 +761,9 @@
     },
     "/bookings/{id}/cancel": {
       "put": {
-        "tags": [
-          "bookings"
-        ],
+        "tags": ["bookings"],
         "description": "取消申請",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "id",
@@ -855,13 +805,9 @@
     },
     "/bookings/{id}/return": {
       "put": {
-        "tags": [
-          "bookings"
-        ],
+        "tags": ["bookings"],
         "description": "歸還申請",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "id",
@@ -903,13 +849,9 @@
     },
     "/classrooms/": {
       "get": {
-        "tags": [
-          "classrooms"
-        ],
+        "tags": ["classrooms"],
         "description": "取得所有教室",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "responses": {
           "200": {
             "description": "OK",
@@ -959,13 +901,9 @@
         }
       },
       "post": {
-        "tags": [
-          "classrooms"
-        ],
+        "tags": ["classrooms"],
         "description": "新增教室 *只有管理員可以新增",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "body",
@@ -1034,13 +972,9 @@
     },
     "/classrooms/{id}": {
       "get": {
-        "tags": [
-          "classrooms"
-        ],
+        "tags": ["classrooms"],
         "description": "取得特定教室",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "id",
@@ -1103,13 +1037,9 @@
         }
       },
       "put": {
-        "tags": [
-          "classrooms"
-        ],
+        "tags": ["classrooms"],
         "description": "新增特定教室 *只有管理員可以更新",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "id",
@@ -1179,13 +1109,9 @@
         }
       },
       "delete": {
-        "tags": [
-          "classrooms"
-        ],
+        "tags": ["classrooms"],
         "description": "刪除特定教室 *只有管理員可以刪除",
-        "produces": [
-          "application/json; charset=utf-8"
-        ],
+        "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
             "name": "id",

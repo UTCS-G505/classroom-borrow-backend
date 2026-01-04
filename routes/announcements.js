@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/announcementsController');
 
-router.get('/', 
-    /*  
+router.get(
+  '/',
+  /*  
         #swagger.description = '取得所有公告'
         #swagger.responses[200] = { 
         schema: [
@@ -23,9 +24,11 @@ router.get('/',
             }
         ]} 
     */
-    controller.getAllAnnouncements);
-router.get('/:id', 
-    /*  
+  controller.getAllAnnouncements
+);
+router.get(
+  '/:id',
+  /*  
         #swagger.description = '取得特定公告'
         #swagger.parameters['id'] = {
             in: 'path',
@@ -44,6 +47,7 @@ router.get('/:id',
             }
         ]} 
     */
-    controller.getAnnouncementsByid);
+  controller.getAnnouncementsByid
+);
 
 module.exports = router;

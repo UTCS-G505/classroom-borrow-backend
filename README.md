@@ -1,4 +1,5 @@
 # Classroom Borrow System — Backend
+
 本專案使用 **Node.js + Express + MySQL**，並以 **Docker Compose** 管理後端及資料庫服務。
 
 ## 專案啟動方式
@@ -6,14 +7,14 @@
 ### 1 建立 `.env`（第一次啟動必做，第二次後面就不用做）
 
 請依照專案內提供的 `.env.example`，新增 `.env`
-```bash 
+
+```bash
 cp .env.example .env
 ```
 
 `.env` 內包含root密碼、資料庫名稱與一般使用者帳密，請自行更改root密碼。
 
 > `.env` 不會被上傳到 GitHub，需自行建立。
-
 
 ---
 
@@ -35,17 +36,19 @@ docker compose up -d --build
 ### 3 查看後端 Log & MySQL
 
 #### 後端log
+
 ```bash
 docker compose logs -f backend
 ```
+
 後端 API 預設運行在：
 
 ```
 http://localhost:3000
 ```
 
-
 #### MySQL
+
 ---
 
 ##### 1 進入 MySQL 容器
@@ -59,6 +62,7 @@ docker exec -it classroom-db mysql -u root -p
 ```
 MYSQL_ROOT_PASSWORD
 ```
+
 ---
 
 ##### 2 常用 SQL 指令

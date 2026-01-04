@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/borrowRequestsController');
 
-router.get('/', 
-    /* 
+router.get(
+  '/',
+  /* 
         #swagger.description = '查看自己的申請'
         #swagger.parameters['id'] = {
             in: 'query',
@@ -63,9 +64,11 @@ router.get('/',
             ]
         } 
     */
-    controller.getBookings);
-router.get('/:id', 
-    /*
+  controller.getBookings
+);
+router.get(
+  '/:id',
+  /*
         /* 
         #swagger.description = '取得特定申請'
         #swagger.parameters['id'] = {
@@ -101,9 +104,11 @@ router.get('/:id',
             }
         } 
     */
-    controller.getBookingssByid);
-router.post('/', 
-    /*
+  controller.getBookingssByid
+);
+router.post(
+  '/',
+  /*
         #swagger.description = '新增申請'
         #swagger.parameters['body'] = {
             in: 'body',
@@ -137,9 +142,11 @@ router.post('/',
             }
         } 
     */
-    controller.postBookings);
-router.put('/:id/cancel', 
-    /*
+  controller.postBookings
+);
+router.put(
+  '/:id/cancel',
+  /*
         #swagger.description = '取消申請'
         #swagger.parameters['id'] = {
             in: 'path',
@@ -155,9 +162,11 @@ router.put('/:id/cancel',
             }
         } 
     */
-    controller.putCancelBookings);
-router.put('/:id/return', 
-    /*
+  controller.putCancelBookings
+);
+router.put(
+  '/:id/return',
+  /*
         #swagger.description = '歸還申請'
         #swagger.parameters['id'] = {
             in: 'path',
@@ -173,6 +182,7 @@ router.put('/:id/return',
             }
         } 
     */
-    controller.putReturnBookings);
+  controller.putReturnBookings
+);
 
 module.exports = router;

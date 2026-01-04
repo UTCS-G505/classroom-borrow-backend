@@ -1,4 +1,3 @@
 const pool = require('../db');
 
-exports.getAllClassrooms = (req, res) => {
-}
+exports.getAllClassrooms = (req, res) => {};

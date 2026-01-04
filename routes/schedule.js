@@ -3,8 +3,9 @@ const router = express.Router();
 const controller = require('../controllers/scheduleController');
 
 // GET /bookings/schedule?date=...&classroom_id=...
-router.get('/', 
-    /*  
+router.get(
+  '/',
+  /*  
         #swagger.description = '取得特定時間教室的行程'
         #swagger.parameters['date'] = {
             in: 'query',
@@ -34,6 +35,7 @@ router.get('/',
             },
         ]} 
     */
-    controller.getSchedule);
+  controller.getSchedule
+);
 
 module.exports = router;

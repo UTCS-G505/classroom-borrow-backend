@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/classroomsController');
 
-router.get('/', 
-    /*  
+router.get(
+  '/',
+  /*  
         #swagger.description = '取得所有教室' 
         #swagger.responses[200] = { 
         schema: [
@@ -27,9 +28,11 @@ router.get('/',
             }
         ]} 
     */
-    controller.getAllClassrooms);
-router.get('/:id', 
-    /*  
+  controller.getAllClassrooms
+);
+router.get(
+  '/:id',
+  /*  
         #swagger.description = '取得特定教室'
         #swagger.parameters['id'] = {
             in: 'path',
@@ -50,9 +53,11 @@ router.get('/:id',
             } 
         ]} 
     */
-    controller.getClassroomsByid);
-router.post('/', 
-    /* 
+  controller.getClassroomsByid
+);
+router.post(
+  '/',
+  /* 
         #swagger.description = '新增教室 *只有管理員可以新增'
         #swagger.parameters['body'] = {
             in: 'body',
@@ -75,10 +80,12 @@ router.post('/',
             }
         } 
     */
-    
-    controller.postClassrooms);
-router.put('/:id', 
-    /* 
+
+  controller.postClassrooms
+);
+router.put(
+  '/:id',
+  /* 
         #swagger.description = '新增特定教室 *只有管理員可以更新'
         #swagger.parameters['id'] = {
             in: 'path',
@@ -105,9 +112,11 @@ router.put('/:id',
             }
         } 
     */
-    controller.updateClassrooms);
-router.delete('/:id', 
-    /*  
+  controller.updateClassrooms
+);
+router.delete(
+  '/:id',
+  /*  
         #swagger.description = '刪除特定教室 *只有管理員可以刪除'
         #swagger.parameters['id'] = {
             in: 'path',
@@ -122,6 +131,7 @@ router.delete('/:id',
             }
         ]} 
     */
-    controller.deleteClassrooms);
+  controller.deleteClassrooms
+);
 
 module.exports = router;

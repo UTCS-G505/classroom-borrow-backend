@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "swagger": "node ./swagger.js"
+    "swagger": "node ./swagger.js",
+    "test": "node tests/adminsController.test.js",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "dayjs": "^1.11.19",
@@ -13,5 +15,8 @@
     "mysql2": "^3.15.3",
     "swagger-autogen": "^2.23.7",
     "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.7.4"
   }
 }

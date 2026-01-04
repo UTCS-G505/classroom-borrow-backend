@@ -4,7 +4,7 @@ services:
     container_name: classroom-db
     restart: unless-stopped
     ports:
-      - "3307:3306"
+      - '3307:3306'
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -17,15 +17,16 @@ services:
       - --character-set-client-handshake=FALSE
 
     healthcheck:
-      test: [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "-p$$MYSQL_ROOT_PASSWORD"
+      test:
+        [
+          'CMD',
+          'mysqladmin',
+          'ping',
+          '-h',
+          'localhost',
+          '-u',
+          'root',
+          '-p$$MYSQL_ROOT_PASSWORD',
         ]
       interval: 10s
       timeout: 10s
@@ -42,7 +43,7 @@ services:
     depends_on:
       - db
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       DB_HOST: db
       DB_USER: ${MYSQL_USER}

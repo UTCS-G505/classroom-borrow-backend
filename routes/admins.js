@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/adminsController');
 
-router.get('/bookings', 
-    /* 
+router.get(
+  '/bookings',
+  /* 
         #swagger.description = '取得所有申請'
         #swagger.responses[200] = { 
             schema: [
@@ -55,9 +56,11 @@ router.get('/bookings',
                 }
         ]} 
     */
-    controller.getAllBookings);
-router.put('/bookings/:id/status', 
-    /* 
+  controller.getAllBookings
+);
+router.put(
+  '/bookings/:id/status',
+  /* 
         #swagger.description = '審核特定申請'
         #swagger.parameters['id'] = {
             in: 'path',
@@ -82,9 +85,11 @@ router.put('/bookings/:id/status',
             }
         } 
     */
-    controller.updateBookings);
-router.post('/announcements', 
-    /* 
+  controller.updateBookings
+);
+router.post(
+  '/announcements',
+  /* 
         #swagger.description = '新增公告'
         #swagger.parameters['body'] = {
             in: 'body',
@@ -104,9 +109,11 @@ router.post('/announcements',
             }
         } 
     */
-    controller.postAnnouncement);
-router.post('/blacklist', 
-    /* 
+  controller.postAnnouncement
+);
+router.post(
+  '/blacklist',
+  /* 
         #swagger.description = '新增黑名單'
         #swagger.parameters['body'] = {
             in: 'body',
@@ -126,9 +133,11 @@ router.post('/blacklist',
             }   
         } 
     */
-    controller.postBlacklist);
-router.delete('/blacklist/:id', 
-    /* 
+  controller.postBlacklist
+);
+router.delete(
+  '/blacklist/:id',
+  /* 
         #swagger.description = '刪除黑名單'
         #swagger.parameters['id'] = {
             in: 'path',
@@ -144,6 +153,7 @@ router.delete('/blacklist/:id',
             } 
         } 
     */
-    controller.deleteBlackList);
+  controller.deleteBlackList
+);
 
 module.exports = router;
