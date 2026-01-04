@@ -107,7 +107,7 @@ exports.postBookings = (req, res) => {
     if (rows.length > 0) {
         // 印出撞到哪一筆
         console.log(`時段衝突！輸入的 ${start_time}~${end_time} 與現有的 ${rows[0].time_slot} 重疊`);
-        return res.status(500).json({ error: '該時段已滿，與現有行程衝突' });
+        return res.status(409).json({ error: '該時段已滿，與現有行程衝突' });
     } else {
         console.log('檢查通過，時段可用');    
 
