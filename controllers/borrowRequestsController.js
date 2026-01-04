@@ -63,11 +63,13 @@ exports.postBookings = (req, res) => {
       });
     }
     
-    /*
-    if ( !classroom_id || !borrow_type || !start_date || !start_time || !end_time || !event_name ) {
-      return res.status(400).json({ error: '缺少必要欄位' });
+    if (end_time && end_time <= start_time) {
+      return res.status(400).json({ error: "結束時間必須晚於開始時間" });
     }
-    */
+
+    if (people_count && people_count < 0) {
+      return res.status(400).json({ error: "人數不可為負數" });
+    }
 
     //===========================================
     const dayjs = require('dayjs');
