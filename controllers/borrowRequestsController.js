@@ -1,4 +1,5 @@
 const pool = require('../db');
+const dayjs = require('dayjs');
 
 exports.getBookings = (req, res) => {
   const id = req.query.id;
@@ -72,7 +73,6 @@ exports.postBookings = (req, res) => {
     }
 
     //===========================================
-    const dayjs = require('dayjs');
 
     // 1. 準備日期與輸入時間
     // 假設輸入: start_time (a), end_time (b)
