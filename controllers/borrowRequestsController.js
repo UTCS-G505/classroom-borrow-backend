@@ -15,7 +15,7 @@ exports.getBookings = (req, res) => {
   });
 };
 
-exports.getBookingssByid = (req, res) => {
+exports.getBookingsById = (req, res) => {
   const value = req.params.id;
   const sql = 'SELECT * FROM borrow_requests WHERE request_id = ?';
   pool.query(sql, value, (err, rows) => {

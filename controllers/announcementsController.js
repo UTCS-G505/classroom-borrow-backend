@@ -13,7 +13,7 @@ exports.getAllAnnouncements = (req, res) => {
   );
 };
 
-exports.getAnnouncementsByid = (req, res) => {
+exports.getAnnouncementsById = (req, res) => {
   const value = req.params.id;
   const sql = 'SELECT * FROM announcements WHERE announcement_id = ?';
   pool.query(sql, value, (err, rows) => {

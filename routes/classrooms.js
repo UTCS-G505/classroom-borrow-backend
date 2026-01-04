@@ -53,7 +53,7 @@ router.get(
             } 
         ]} 
     */
-  controller.getClassroomsByid
+  controller.getClassroomsById
 );
 router.post(
   '/',

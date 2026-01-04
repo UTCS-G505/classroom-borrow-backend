@@ -10,7 +10,7 @@ exports.getAllClassrooms = (req, res) => {
     }
   });
 };
-exports.getClassroomsByid = (req, res) => {
+exports.getClassroomsById = (req, res) => {
   const value = req.params.id;
   const sql = 'SELECT * FROM classrooms WHERE classroom_id = ?';
   pool.query(sql, value, (err, rows) => {

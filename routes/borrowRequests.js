@@ -104,7 +104,7 @@ router.get(
             }
         } 
     */
-  controller.getBookingssByid
+  controller.getBookingsById
 );
 router.post(
   '/',

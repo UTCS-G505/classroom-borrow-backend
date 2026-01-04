@@ -47,7 +47,7 @@ router.get(
             }
         ]} 
     */
-  controller.getAnnouncementsByid
+  controller.getAnnouncementsById
 );
 
 module.exports = router;
