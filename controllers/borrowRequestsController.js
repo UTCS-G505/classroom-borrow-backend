@@ -156,16 +156,11 @@ exports.postBookings = (req, res) => {
           borrower_email
         ]
 
-
-        
-        var req_id;
-
         pool.query(sql,values,(err, result) => {
           if (err) {
             console.error('新增資料失敗:', err);
             return res.status(500).json({ error: '資料庫錯誤' });
           }
-          req_id = result.insertId;
           res.json({ message: '申請已建立', request_id: result.insertId });
         });
 
