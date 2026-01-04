@@ -39,6 +39,7 @@ exports.postClassrooms = (req, res) => {
     if (!capacity) missing.push('capacity');
     if (!description) missing.push('description');
     if (!image_url) missing.push('image_url');
+    if (!type) missing.push('type');
 
     if (missing.length > 0) {
       return res.status(400).json({
