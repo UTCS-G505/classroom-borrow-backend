@@ -132,7 +132,7 @@ exports.postBookings = (req, res) => {
             ? , ? , ? , ? ,
             ? , ? , ? ,
             ? , ? , ? )`
-        //const testid = 4;
+          
         const values = 
         [
           borrower_id,
