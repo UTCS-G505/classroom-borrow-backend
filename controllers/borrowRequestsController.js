@@ -212,7 +212,7 @@ exports.putCancelBookings = (req, res) => {
       console.error('變更資料失敗:', err);
       return res.status(500).json({ error: '資料庫錯誤' });
     }
-    res.json({ message: '已取消', request_id: result.insertId });
+    res.json({ message: '已取消', request_id: value });
     //console.log(result);
   });
 };
@@ -229,7 +229,7 @@ exports.putReturnBookings = (req, res) => {
       console.error('變更資料失敗:', err);
       return res.status(500).json({ error: '資料庫錯誤' });
     }
-    res.json({ message: '已歸還', request_id: result.insertId });
+    res.json({ message: '已歸還', request_id: value });
     //console.log(result);
   });
 };
