@@ -11,7 +11,7 @@ exports.getSchedule = (req, res) => {
     pool.query(sql, values, (err, rows) => {
         if (err) {
             console.error('序列 error:', err);
-            res.status(500).send('資料庫錯誤');
+            res.status(500).json({ error: "資料庫錯誤" });
         } else {
             res.json(rows);
         }

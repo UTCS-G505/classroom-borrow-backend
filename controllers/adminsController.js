@@ -5,6 +5,7 @@ exports.getAllBookings = (req, res) => {
     pool.query(`SELECT * FROM borrow_requests`, (err, rows) => {
       if (err) {
         console.error('Query error:', err);
+        res.status(500).json({ error: "資料庫錯誤" });
       } else {
         res.json(rows)
       }

@@ -16,7 +16,7 @@ exports.getAnnouncementsByid = (req, res) => {
     pool.query(sql, value, (err, rows) => {
         if (err) {
           console.error('Query error:', err);
-          res.status(500).send('Database error');
+          res.status(500).json({ error: "資料庫錯誤" });
         } else {
           res.json(rows);
         }
