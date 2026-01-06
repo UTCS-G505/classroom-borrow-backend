@@ -1,12 +1,10 @@
 const pool = require('../db');
+const axios = require('axios');
+const jwt = require('jsonwebtoken');
+const Cookies = require('js-cookie');
 
 // === 設定 ===
-// 1. 【SSO URL】
 const SSO_API_URL = 'https://algotutor.utaipei.edu.tw:1777/api/v1/auth/login';
-
-// === Middleware ===
-app.use(cors());
-app.use(express.json());
 
 // === 輔助函式：產生 Token (JWT) ===
 function generateAccessToken(user) {
@@ -18,22 +16,26 @@ function generateRefreshToken(user) {
 }
 
 // === Middleware：驗證 Token ===
-function authenticateToken(req, res, next) {
+exports.authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ success: false, message: '未提供 Token' });
+  if (!token)
+    return res.status(401).json({ success: false, message: '未提供 Token' });
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ success: false, message: 'Token 無效或過期' });
+    if (err)
+      return res
+        .status(403)
+        .json({ success: false, message: 'Token 無效或過期' });
     req.user = user;
     next();
   });
-}
+};
 
-// === API Routes ===
+// === Controller Functions ===
 
-// 1. 測試頁面 (您提供的測試工具，保留方便除錯)
-app.get('/test-login', (req, res) => {
+// 測試頁面 (SSO 登入測試工具)
+exports.getTestLoginPage = (req, res) => {
   res.send(`
     <html>
       <head><title>SSO 登入測試</title></head>
@@ -73,10 +75,10 @@ app.get('/test-login', (req, res) => {
       </body>
     </html>
   `);
-});
+};
 
-// 2. 登入 API (整合 SSO + JWT)
-app.post('/api/login', async (req, res) => {
+// 登入 API (整合 SSO + JWT)
+exports.login = async (req, res) => {
   const { account, password } = req.body;
   console.log(`收到登入請求: ${account}`);
 
@@ -86,96 +88,116 @@ app.post('/api/login', async (req, res) => {
     params.append('username', account);
     params.append('password', password);
 
-    console.log("正在發送請求至 SSO...");
+    console.log('正在發送請求至 SSO...');
 
     // B. 發送請求給學校 SSO
     const ssoResponse = await axios.post(SSO_API_URL, params, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      withCredentials: true,
     });
 
     const ssoData = ssoResponse.data;
 
     // C. 判斷 SSO 結果
     if (ssoData.code === 0) {
-        console.log("SSO 驗證成功");
+      console.log('SSO 驗證成功');
 
-        // --- 這裡開始是 JWT 整合邏輯 ---
-        
-        // 1. 準備 Payload (要放入 Token 的資料)
-        // 假設 SSO 回傳的 data 裡有我們需要的資訊，如果沒有，我們先用 account 當名字
-        const userPayload = { 
-            name: account,     // 暫時用學號當名字
-            account: account, 
-            role: 'student'    // 預設給學生身分 (SSO 通常是學生)
-        };
+      // Get cookies from response headers
+      const cookies = ssoResponse.headers['set-cookie'];
 
-        // 2. 產生我們系統自己的 Token
-        // 前端 LoginView.vue 需要這個 access_token 才能存入 localStorage
-        const accessToken = generateAccessToken(userPayload);
-        const refreshToken = generateRefreshToken(userPayload);
-
-        // 3. 回傳成功訊息 (包含 user_data 與 Token)
-        res.json({
-            success: true,
-            message: "SSO 登入成功",
-            user_data: {
-                // 這裡的結構要配合前端 LoginView.vue 的預期
-                account: account,
-                username: account, // NavBar 顯示用
-                role: 'student',
-                access_token: accessToken,  // ★ 重要：前端需要這個
-                refresh_token: refreshToken,
-                sso_info: ssoData.data      // 保留原始 SSO 回傳資料備查
-            }
+      // Parse specific cookie
+      if (cookies === undefined) {
+        res.status(500).json({
+          success: false,
+          message: 'SSO 未回傳必要的 Cookie',
         });
+        return;
+      }
 
+      const accessToken = ssoData.data.access_token;
+      const refreshTokenCookie = cookies.find((cookie) =>
+        cookie.startsWith('refresh_token=')
+      );
+      const uid = cookies.find((cookie) => cookie.startsWith('uid='));
+
+      if (!accessToken || !refreshTokenCookie || !uid) {
+        res.status(500).json({
+          success: false,
+          message: 'SSO 未回傳必要的驗證資料',
+        });
+        return;
+      }
+
+      res.cookie('access_token', accessToken); // TODO: secure cookies
+      if (refreshTokenCookie) {
+        const refreshToken = refreshTokenCookie.split(';')[0].split('=')[1];
+        res.cookie('refresh_token', refreshToken); // TODO: secure cookies
+      }
+      if (uid) {
+        const uidValue = uid.split(';')[0].split('=')[1];
+        res.cookie('uid', uidValue); // TODO: secure cookies
+      }
+
+      res.json({
+        success: true,
+        message: 'SSO 登入成功',
+        data: {
+          uid: uid.split(';')[0].split('=')[1],
+        },
+      });
     } else {
-        // SSO 回傳 200 但 code 不為 0 (業務邏輯錯誤)
-        res.status(401).json({
-            success: false,
-            message: ssoData.message || "帳號或密碼錯誤"
-        });
+      // SSO 回傳 200 但 code 不為 0
+      res.status(401).json({
+        success: false,
+        message: ssoData.message || '帳號或密碼錯誤',
+      });
     }
-
   } catch (error) {
-    console.error("SSO 回傳錯誤:", error.message);
-    
+    console.error('SSO 回傳錯誤:', error.message);
+
     // 處理 SSO 回傳的錯誤狀態 (例如 401)
     if (error.response) {
-        console.error("SSO 狀態碼:", error.response.status);
-        
-        if (error.response.status === 401) {
-            return res.status(401).json({
-                success: false,
-                message: "帳號或密碼錯誤" 
-            });
-        }
+      console.error('SSO 狀態碼:', error.response.status);
+
+      if (error.response.status === 401) {
+        return res.status(401).json({
+          success: false,
+          message: '帳號或密碼錯誤',
+        });
+      }
     }
 
     res.status(500).json({
       success: false,
-      message: "系統連線錯誤 (無法連接 SSO)"
+      message: '系統連線錯誤 (無法連接 SSO)',
     });
   }
-});
+};
 
-// 3. Refresh Token API (前端換發新 Token 用)
-app.post('/api/refresh', (req, res) => {
+// Refresh Token API (前端換發新 Token 用)
+exports.refreshToken = (req, res) => {
   const { refreshToken } = req.body;
-  if (!refreshToken) return res.status(401).json({ success: false, message: '無 Refresh Token' });
+  if (!refreshToken)
+    return res
+      .status(401)
+      .json({ success: false, message: '無 Refresh Token' });
 
   jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ success: false, message: 'Refresh Token 無效' });
-    const userPayload = { name: user.name, account: user.account, role: user.role };
+    if (err)
+      return res
+        .status(403)
+        .json({ success: false, message: 'Refresh Token 無效' });
+    const userPayload = {
+      name: user.name,
+      account: user.account,
+      role: user.role,
+    };
     const accessToken = generateAccessToken(userPayload);
     res.json({ success: true, accessToken });
   });
-});
+};
 
-// 4. 取得使用者資料 (測試 JWT 驗證用)
-app.get('/api/user/profile', authenticateToken, (req, res) => {
+// 取得使用者資料 (需驗證 Token)
+exports.getProfile = (req, res) => {
   res.json({ success: true, user: req.user });
-});
-
-
-exports.getAllClassrooms = (req, res) => {};
+};

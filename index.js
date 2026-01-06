@@ -68,6 +68,20 @@ app.use(
   require('./routes/tests')
 );
 
+// Auth routes (登入、Token 相關)
+app.use(
+  '/api',
+  // #swagger.tags = ['auth']
+  require('./routes/auth.routes')
+);
+
+// Users routes
+app.use(
+  '/users',
+  // #swagger.tags = ['users']
+  require('./routes/users')
+);
+
 app.get('/ping', (req, res) => {
   // #swagger.ignore = true
   console.log('Ping route hit');
