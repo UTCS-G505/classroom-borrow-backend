@@ -4,15 +4,37 @@ services:
     container_name: classroom-db
     restart: unless-stopped
     ports:
-      - "3307:3306"           # 主機 3307 -> MySQL 3306
+      - '3307:3306'
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --character-set-client-handshake=FALSE
+
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'mysqladmin',
+          'ping',
+          '-h',
+          'localhost',
+          '-u',
+          'root',
+          '-p$$MYSQL_ROOT_PASSWORD',
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
     volumes:
-      - ./mysql-data:/var/lib/mysql                 # 資料庫實際資料
-      - ./sql:/docker-entrypoint-initdb.d          # 這裡放 classroom_borrow_system.sql
+      - ./mysql-data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
 
   backend:
     build: .
@@ -21,9 +43,9 @@ services:
     depends_on:
       - db
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
-      DB_HOST: db               # 用 service 名稱，不是 localhost
+      DB_HOST: db
       DB_USER: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
       DB_NAME: ${MYSQL_DATABASE}

@@ -10,7 +10,9 @@ const pool = mysql.createPool({
   port: process.env.DB_PORT || 3307,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  charset: 'utf8mb4',
+  queueLimit: 0,
+  charsetNumber: 45,
 });
 
 module.exports = pool.promise();

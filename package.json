@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "swagger": "node ./swagger.js",
+    "test": "node tests/adminsController.test.js",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "axios": "^1.13.2",
@@ -11,6 +14,12 @@
     "dotenv": "^17.2.3",
     "express": "^4.22.1",
     "jsonwebtoken": "^9.0.3",
-    "mysql2": "^3.16.0"
+    "mysql2": "^3.16.0",
+    "dayjs": "^1.11.19",
+    "swagger-autogen": "^2.23.7",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.7.4"
   }
 }
