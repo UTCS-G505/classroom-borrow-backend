@@ -2,9 +2,6 @@ const express = require('express');
 const router = express.Router();
 const usersController = require('../controllers/usersController');
 
-// 測試頁面
-router.get('/test-login', usersController.getTestLoginPage);
-
 // 登入 API (SSO + JWT)
 router.post('/login', usersController.login);
 

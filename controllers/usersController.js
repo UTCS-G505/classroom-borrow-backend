@@ -34,49 +34,6 @@ exports.authenticateToken = (req, res, next) => {
 
 // === Controller Functions ===
 
-// 測試頁面 (SSO 登入測試工具)
-exports.getTestLoginPage = (req, res) => {
-  res.send(`
-    <html>
-      <head><title>SSO 登入測試</title></head>
-      <body style="padding: 2rem; font-family: sans-serif;">
-        <h2>SSO 串接測試 (整合 JWT 版)</h2>
-        <p>請輸入學號與密碼進行測試。</p>
-        <div style="border: 1px solid #ccc; padding: 20px; max-width: 300px;">
-            <input type="text" id="account" placeholder="學號 (如 U11316099)" style="width: 100%; margin-bottom: 10px; padding: 5px;">
-            <input type="password" id="password" placeholder="密碼" style="width: 100%; margin-bottom: 10px; padding: 5px;">
-            <button onclick="testLogin()" style="width: 100%; padding: 5px; cursor: pointer; background: #007bff; color: white; border: none;">登入測試</button>
-        </div>
-        <pre id="result" style="background: #eee; padding: 10px; margin-top: 10px; min-height: 50px;">等待測試...</pre>
-
-        <script>
-          async function testLogin() {
-            const acc = document.getElementById('account').value;
-            const pwd = document.getElementById('password').value;
-            const resultBox = document.getElementById('result');
-            resultBox.textContent = "連線中...";
-            resultBox.style.color = "black";
-            
-            try {
-              const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ account: acc, password: pwd })
-              });
-              const data = await res.json();
-              resultBox.textContent = JSON.stringify(data, null, 2);
-              resultBox.style.color = data.success ? "green" : "red";
-            } catch (err) {
-              resultBox.textContent = "錯誤：" + err.message;
-              resultBox.style.color = "red";
-            }
-          }
-        </script>
-      </body>
-    </html>
-  `);
-};
-
 // 登入 API (整合 SSO + JWT)
 exports.login = async (req, res) => {
   const { account, password } = req.body;
