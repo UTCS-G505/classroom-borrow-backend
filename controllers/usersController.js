@@ -1,44 +1,60 @@
 const pool = require('../db');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
 
 // === 設定 ===
 const SSO_API_URL = 'https://algotutor.utaipei.edu.tw:1777/api/v1';
+
+// 讀取公鑰
+const PUBLIC_KEY = fs.readFileSync(
+  path.join(__dirname, '../public.pem'),
+  'utf8'
+);
 
 // Cookie 配置 - 開發環境跨域設定
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',        // 允許同站請求帶 cookie
-  path: '/',              // Cookie 對所有路徑有效
+  sameSite: 'lax', // 允許同站請求帶 cookie
+  path: '/', // Cookie 對所有路徑有效
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
 };
 
-// // === 輔助函式：產生 Token (JWT) ===
-// function generateAccessToken(user) {
-//   return jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
-// }
-
-// function generateRefreshToken(user) {
-//   return jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
-// }
-
 // === Middleware：驗證 Token ===
 exports.authenticateToken = (req, res, next) => {
-  // const accessToken = req.cookies.access_token;
+  // 從 Authorization header 中取得 token
+  const authHeader = req.headers['authorization'];
+  const accessToken =
+    authHeader && authHeader.startsWith('Bearer ')
+      ? authHeader.substring(7)
+      : null;
 
-  // if (!accessToken)
-  //   return res.status(401).json({ success: false, message: '未提供 access token' });
+  if (!accessToken) {
+    return res.status(401).json({
+      success: false,
+      message: '未提供 access token',
+    });
+  }
 
-  // jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-  //   if (err)
-  //     return res
-  //       .status(403)
-  //       .json({ success: false, message: 'access token 無效或過期' });
-  //   req.user = user;
+  next();
+
+  // TODO
+  // 使用公鑰驗證 JWT
+  // jwt.verify(accessToken, PUBLIC_KEY, { algorithms: ['RS256'] }, (err, decoded) => {
+  //   if (err) {
+  //     return res.status(403).json({
+  //       success: false,
+  //       message: 'access token 無效或過期',
+  //       error: err.message
+  //     });
+  //   }
+
+  //   // 將解碼後的使用者資訊存入 req.user
+  //   req.user = decoded;
   //   next();
   // });
-  next();
 };
 
 // === Controller Functions ===
@@ -94,7 +110,6 @@ exports.login = async (req, res) => {
         return;
       }
 
-      res.cookie('access_token', accessToken, COOKIE_OPTIONS);
       if (refreshTokenCookie) {
         const refreshToken = refreshTokenCookie.split(';')[0].split('=')[1];
         res.cookie('refresh_token', refreshToken, COOKIE_OPTIONS);
@@ -164,10 +179,11 @@ exports.refreshToken = (req, res) => {
   });
 };
 
-// 取得使用者資料 (需驗證 Token)
 exports.getProfile = async (req, res) => {
   const uid = req.query.uid;
-  const accessToken = req.cookies?.access_token; // 從請求的 cookies 中讀取
+  const accessToken = req.headers['authorization']
+    ? req.headers['authorization'].split(' ')[1]
+    : null;
   console.log(`取得使用者資料請求，UID: ${uid}`);
 
   if (!accessToken) {
