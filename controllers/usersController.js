@@ -5,7 +5,8 @@ const fs = require('fs');
 const path = require('path');
 
 // === 設定 ===
-const SSO_API_URL = 'https://algotutor.utaipei.edu.tw:1777/api/v1';
+const SSO_API_URL =
+  process.env.SSO_API_URL || 'https://algotutor.utaipei.edu.tw:1777/api/v1';
 
 // 讀取公鑰
 const PUBLIC_KEY = fs.readFileSync(
@@ -164,27 +165,74 @@ exports.login = async (req, res) => {
   }
 };
 
-// Refresh Token API (前端換發新 Token 用)
-exports.refreshToken = (req, res) => {
-  const { refreshToken } = req.body;
-  if (!refreshToken)
-    return res
-      .status(401)
-      .json({ success: false, message: '無 Refresh Token' });
+exports.refreshToken = async (req, res) => {
+  const refreshToken = req.cookies['refresh_token'];
 
-  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-    if (err)
-      return res
-        .status(403)
-        .json({ success: false, message: 'Refresh Token 無效' });
-    const userPayload = {
-      name: user.name,
-      account: user.account,
-      role: user.role,
-    };
-    const accessToken = generateAccessToken(userPayload);
-    res.json({ success: true, accessToken });
-  });
+  if (!refreshToken) {
+    return res.status(401).json({
+      success: false,
+      message: '未提供 refresh token',
+    });
+  }
+
+  try {
+    const response = await axios.post(
+      `${SSO_API_URL}/auth/refresh`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `refresh_token=${refreshToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    const data = response.data;
+
+    if (data.code === 0) {
+      const accessToken = data.data.access_token;
+
+      if (!accessToken) {
+        res.status(500).json({
+          success: false,
+          message: 'SSO 未回傳必要的驗證資料',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'SSO refresh token 成功',
+        data: {
+          accessToken: accessToken,
+        },
+      });
+    } else {
+      res.status(401).json({
+        success: false,
+        message: data.message || 'Refresh token 無效',
+      });
+    }
+  } catch (error) {
+    console.error('SSO 回傳錯誤:', error.message);
+
+    // 處理 SSO 回傳的錯誤狀態 (例如 401)
+    if (error.response) {
+      console.error('SSO 狀態碼:', error.response.status);
+
+      if (error.response.status === 401) {
+        return res.status(401).json({
+          success: false,
+          message: '帳號或密碼錯誤',
+        });
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: '系統連線錯誤 (無法連接 SSO)',
+    });
+  }
 };
 
 exports.getProfile = async (req, res) => {
