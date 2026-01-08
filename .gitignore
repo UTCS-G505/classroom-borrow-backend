@@ -8,3 +8,4 @@ mysql-data/
 
 # OS
 .DS_Store
+public.pem

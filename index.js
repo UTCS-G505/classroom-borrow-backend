@@ -1,8 +1,25 @@
 require('dotenv').config();
 const express = require('express');
+const axios = require('axios'); // 引入 axios 用於 SSO 請求
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+const db = require('./db'); // 保持資料庫連線，之後抓個資或紀錄會用到
+
 const app = express();
+// 配合您提供的程式碼，預設使用 8080，如果 .env 有設定則優先使用 .env
 const port = process.env.PORT || 3000;
+
+// 啟用 CORS
+app.use(
+  cors({
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
+app.use(cookieParser());
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger-output.json');
@@ -62,6 +79,20 @@ app.use(
   require('./routes/tests')
 );
 
+// Auth routes (登入、Token 相關)
+app.use(
+  '/api',
+  // #swagger.tags = ['auth']
+  require('./routes/auth.routes')
+);
+
+// Users routes
+app.use(
+  '/users',
+  // #swagger.tags = ['users']
+  require('./routes/users')
+);
+
 app.get('/ping', (req, res) => {
   // #swagger.ignore = true
   console.log('Ping route hit');
@@ -69,5 +100,7 @@ app.get('/ping', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
+  console.log(`\n=== 伺服器已啟動 ===`);
+  console.log(`後端運行於: http://localhost:${port}`);
+  // console.log(`登入測試頁面: http://localhost:${port}/test-login \n`);
 });
