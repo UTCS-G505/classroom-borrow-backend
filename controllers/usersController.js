@@ -9,7 +9,7 @@ const SSO_API_URL = 'https://algotutor.utaipei.edu.tw:1777/api/v1';
 
 // 讀取公鑰
 const PUBLIC_KEY = fs.readFileSync(
-  path.join(__dirname, '../public.pem'),
+  path.join(__dirname, '../keys/public.pem'),
   'utf8'
 );
 
@@ -38,23 +38,31 @@ exports.authenticateToken = (req, res, next) => {
     });
   }
 
-  next();
-
-  // TODO
   // 使用公鑰驗證 JWT
-  // jwt.verify(accessToken, PUBLIC_KEY, { algorithms: ['RS256'] }, (err, decoded) => {
-  //   if (err) {
-  //     return res.status(403).json({
-  //       success: false,
-  //       message: 'access token 無效或過期',
-  //       error: err.message
-  //     });
-  //   }
+  jwt.verify(
+    accessToken,
+    PUBLIC_KEY,
+    { algorithms: ['RS256'] },
+    (err, decoded) => {
+      if (err) {
+        if (err.name === 'TokenExpiredError') {
+          console.log('Token 已過期');
+          return res.status(401).json({
+            success: false,
+            message: 'access token 過期',
+          });
+        }
+        console.log('Token 驗證失敗:', err.message);
+        return res.status(403).json({
+          success: false,
+          message: 'access token 無效',
+          error: err.message,
+        });
+      }
 
-  //   // 將解碼後的使用者資訊存入 req.user
-  //   req.user = decoded;
-  //   next();
-  // });
+      next();
+    }
+  );
 };
 
 // === Controller Functions ===
