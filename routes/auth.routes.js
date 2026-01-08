@@ -8,6 +8,9 @@ router.post('/login', usersController.login);
 // Refresh Token API
 router.post('/refresh', usersController.refreshToken);
 
+// 登出 API
+router.post('/logout', usersController.logout);
+
 // 取得使用者資料 (需驗證 Token)
 router.get(
   '/user/profile',

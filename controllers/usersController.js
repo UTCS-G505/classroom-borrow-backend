@@ -235,6 +235,52 @@ exports.refreshToken = async (req, res) => {
   }
 };
 
+exports.logout = async (req, res) => {
+  const refreshToken = req.cookies['refresh_token'];
+
+  if (!refreshToken) {
+    return res.status(400).json({
+      success: false,
+      message: '未提供 refresh token',
+    });
+  }
+  try {
+    const response = await axios.post(
+      `${SSO_API_URL}/auth/logout`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: `refresh_token=${refreshToken}`,
+        },
+        withCredentials: true,
+      }
+    );
+    const data = response.data;
+
+    if (data.code === 0) {
+      res.clearCookie('refresh_token', COOKIE_OPTIONS);
+      res.clearCookie('uid', { ...COOKIE_OPTIONS, httpOnly: false });
+
+      res.json({
+        success: true,
+        message: '登出成功',
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: '無法登出',
+      });
+    }
+  } catch (error) {
+    console.error('SSO 回傳錯誤:', error.message);
+    res.status(500).json({
+      success: false,
+      message: '系統連線錯誤 (無法連接 SSO)',
+    });
+  }
+};
+
 exports.getProfile = async (req, res) => {
   const uid = req.query.uid;
   const accessToken = req.headers['authorization']
