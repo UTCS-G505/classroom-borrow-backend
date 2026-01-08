@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const usersController = require('../controllers/usersController');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // 登入 API (SSO + JWT)
 router.post('/login', usersController.login);
@@ -14,7 +15,7 @@ router.post('/logout', usersController.logout);
 // 取得使用者資料 (需驗證 Token)
 router.get(
   '/user/profile',
-  usersController.authenticateToken,
+  authMiddleware.authenticateToken,
   usersController.getProfile
 );
 

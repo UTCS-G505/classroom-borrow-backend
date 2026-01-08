@@ -1,18 +1,4 @@
-const pool = require('../db');
-const axios = require('axios');
-const jwt = require('jsonwebtoken');
-const fs = require('fs');
-const path = require('path');
-
-// === 設定 ===
-const SSO_API_URL =
-  process.env.SSO_API_URL || 'https://algotutor.utaipei.edu.tw:1777/api/v1';
-
-// 讀取公鑰
-const PUBLIC_KEY = fs.readFileSync(
-  path.join(__dirname, '../keys/public.pem'),
-  'utf8'
-);
+const ssoService = require('../services/ssoService');
 
 // Cookie 配置 - 開發環境跨域設定
 const COOKIE_OPTIONS = {
@@ -23,70 +9,14 @@ const COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
 };
 
-// === Middleware：驗證 Token ===
-exports.authenticateToken = (req, res, next) => {
-  // 從 Authorization header 中取得 token
-  const authHeader = req.headers['authorization'];
-  const accessToken =
-    authHeader && authHeader.startsWith('Bearer ')
-      ? authHeader.substring(7)
-      : null;
-
-  if (!accessToken) {
-    return res.status(401).json({
-      success: false,
-      message: '未提供 access token',
-    });
-  }
-
-  // 使用公鑰驗證 JWT
-  jwt.verify(
-    accessToken,
-    PUBLIC_KEY,
-    { algorithms: ['RS256'] },
-    (err, decoded) => {
-      if (err) {
-        if (err.name === 'TokenExpiredError') {
-          console.log('Token 已過期');
-          return res.status(401).json({
-            success: false,
-            message: 'access token 過期',
-          });
-        }
-        console.log('Token 驗證失敗:', err.message);
-        return res.status(403).json({
-          success: false,
-          message: 'access token 無效',
-          error: err.message,
-        });
-      }
-
-      next();
-    }
-  );
-};
-
-// === Controller Functions ===
-
 // 登入 API (整合 SSO + JWT)
 exports.login = async (req, res) => {
   const { account, password } = req.body;
   console.log(`收到登入請求: ${account}`);
 
   try {
-    // A. 準備發送給 SSO 的資料 (application/x-www-form-urlencoded)
-    const params = new URLSearchParams();
-    params.append('username', account);
-    params.append('password', password);
-
-    console.log('正在發送請求至 SSO...');
-
-    // B. 發送請求給學校 SSO
-    const ssoResponse = await axios.post(SSO_API_URL + '/auth/login', params, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      withCredentials: true,
-    });
-
+    // 發送請求給學校 SSO
+    const ssoResponse = await ssoService.loginToSSO(account, password);
     const ssoData = ssoResponse.data;
 
     // C. 判斷 SSO 結果
@@ -176,17 +106,7 @@ exports.refreshToken = async (req, res) => {
   }
 
   try {
-    const response = await axios.post(
-      `${SSO_API_URL}/auth/refresh`,
-      {},
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: `refresh_token=${refreshToken}`,
-        },
-        withCredentials: true,
-      }
-    );
+    const response = await ssoService.refreshTokenFromSSO(refreshToken);
     const data = response.data;
 
     if (data.code === 0) {
@@ -245,17 +165,7 @@ exports.logout = async (req, res) => {
     });
   }
   try {
-    const response = await axios.post(
-      `${SSO_API_URL}/auth/logout`,
-      {},
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: `refresh_token=${refreshToken}`,
-        },
-        withCredentials: true,
-      }
-    );
+    const response = await ssoService.logoutFromSSO(refreshToken);
     const data = response.data;
 
     if (data.code === 0) {
@@ -296,13 +206,7 @@ exports.getProfile = async (req, res) => {
   }
 
   try {
-    const response = await axios.get(SSO_API_URL + `/user/get/${uid}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      withCredentials: true,
-    });
+    const response = await ssoService.getUserProfileFromSSO(uid, accessToken);
     const userData = response.data;
 
     if (userData.code === 0) {
