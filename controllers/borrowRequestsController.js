@@ -1,34 +1,32 @@
 const pool = require('../db');
 const dayjs = require('dayjs');
 
-exports.getBookings = (req, res) => {
-  const id = req.query.id;
-  const sql =
-    'SELECT * FROM borrow_requests WHERE borrower_id = ? ORDER BY created_at DESC';
-  pool.query(sql, id, (err, rows) => {
-    if (err) {
-      console.error('Query error:', err);
-      res.status(500).json({ error: '資料庫錯誤' });
-    } else {
-      res.json(rows);
-    }
-  });
+exports.getBookings = async (req, res) => {
+  try {
+    const id = req.query.id;
+    const sql =
+      'SELECT * FROM borrow_requests WHERE borrower_id = ? ORDER BY created_at DESC';
+    const [rows] = await pool.query(sql, [id]);
+    res.json(rows);
+  } catch (err) {
+    console.error('Query error:', err);
+    res.status(500).json({ error: '資料庫錯誤' });
+  }
 };
 
-exports.getBookingsById = (req, res) => {
-  const value = req.params.id;
-  const sql = 'SELECT * FROM borrow_requests WHERE request_id = ?';
-  pool.query(sql, value, (err, rows) => {
-    if (err) {
-      console.error('Query error:', err);
-      res.status(500).json({ error: '資料庫錯誤' });
-    } else {
-      res.json(rows);
-    }
-  });
+exports.getBookingsById = async (req, res) => {
+  try {
+    const value = req.params.id;
+    const sql = 'SELECT * FROM borrow_requests WHERE request_id = ?';
+    const [rows] = await pool.query(sql, [value]);
+    res.json(rows);
+  } catch (err) {
+    console.error('Query error:', err);
+    res.status(500).json({ error: '資料庫錯誤' });
+  }
 };
 
-exports.postBookings = (req, res) => {
+exports.postBookings = async (req, res) => {
   var {
     borrower_id,
     classroom_id,
@@ -71,17 +69,11 @@ exports.postBookings = (req, res) => {
     return res.status(400).json({ error: '人數不可為負數' });
   }
 
-  //===========================================
-
   // 1. 準備日期與輸入時間
-  // 假設輸入: start_time (a), end_time (b)
   let sDate = dayjs(start_date).format('YYYY-MM-DD');
   let eDate = dayjs(!end_date ? start_date : end_date).format('YYYY-MM-DD');
 
-  // 2. SQL 邏輯：
-  // 我們利用 SUBSTRING_INDEX 在查詢當下把 "09:00-10:00" 拆成 "09:00" 和 "10:00"
-  // 然後套用重疊公式： (DB起始 < 輸入結束) AND (DB結束 > 輸入起始)
-  // 修改點：加入 FOR UPDATE 以鎖定查詢結果或間隙，防止 Race Condition
+  // 2. SQL 邏輯：檢查時段重疊
   const checkSql = `
         SELECT *
         FROM schedule
@@ -92,13 +84,7 @@ exports.postBookings = (req, res) => {
         FOR UPDATE
     `;
 
-  const chkvalues = [
-    classroom_id,
-    sDate, // 日期區間開始
-    eDate, // 日期區間結束
-    end_time, // 輸入的結束時間 (b)，用來跟 DB 的 A 比
-    start_time, // 輸入的開始時間 (a)，用來跟 DB 的 B 比
-  ];
+  const chkvalues = [classroom_id, sDate, eDate, end_time, start_time];
 
   // SQL INSERT
   const insertSql = `
@@ -116,120 +102,95 @@ exports.postBookings = (req, res) => {
         ? , ? , ? )`;
 
   // 取得資料庫連線以啟動交易
-  pool.getConnection((err, connection) => {
-    if (err) return res.status(500).json({ error: '無法取得資料庫連線' });
+  const connection = await pool.getConnection();
 
-    // 啟動交易
-    connection.beginTransaction((err) => {
-      if (err) {
-        connection.release();
-        return res.status(500).json({ error: '交易啟動失敗' });
-      }
+  try {
+    await connection.beginTransaction();
 
-      // 定義回滾並釋放連線的輔助函式
-      const rollbackAndRelease = (msg, statusCode = 500, jsonBody = null) => {
-        connection.rollback(() => {
-          connection.release();
-          res.status(statusCode).json(jsonBody || { error: msg });
-        });
-      };
+    // 檢查時段衝突
+    const [rows] = await connection.query(checkSql, chkvalues);
 
-      // 使用 connection 執行查詢以保持交易一致性
-      connection.query(checkSql, chkvalues, (err, rows) => {
-        if (err) {
-          console.error('檢查失敗:', err);
-          return rollbackAndRelease('資料庫檢查錯誤', 500);
-        }
+    if (rows.length > 0) {
+      console.log(
+        `時段衝突！輸入的 ${start_time}~${end_time} 與現有的 ${rows[0].time_slot} 重疊`
+      );
+      await connection.rollback();
+      return res.status(409).json({ error: '該時段已滿，與現有行程衝突' });
+    }
 
-        // 如果抓到資料，代表有「重疊」，也就是衝突
-        if (rows.length > 0) {
-          // 印出撞到哪一筆
-          console.log(
-            `時段衝突！輸入的 ${start_time}~${end_time} 與現有的 ${rows[0].time_slot} 重疊`
-          );
-          return rollbackAndRelease('該時段已滿，與現有行程衝突', 409);
-        }
+    console.log('檢查通過，時段可用');
 
-        console.log('檢查通過，時段可用');
+    if (!teacher_department) teacher_department = '';
+    if (!teacher_phone) teacher_phone = '';
+    if (!teacher_email) teacher_email = '';
+    if (!borrower_department) borrower_department = '';
+    if (!borrower_phone) borrower_phone = '';
+    if (!borrower_email) borrower_email = '';
 
-        if (!teacher_department) teacher_department = '';
-        if (!teacher_phone) teacher_phone = '';
-        if (!teacher_email) teacher_email = '';
-        if (!borrower_department) borrower_department = '';
-        if (!borrower_phone) borrower_phone = '';
-        if (!borrower_email) borrower_email = '';
+    const values = [
+      borrower_id,
+      classroom_id,
+      borrow_type,
+      start_date,
+      end_date,
+      start_time,
+      end_time,
+      event_name,
+      people_count,
+      teacher_name,
+      reason,
+      '審核中',
+      '審核中',
+      teacher_department,
+      teacher_phone,
+      teacher_email,
+      borrower_department,
+      borrower_phone,
+      borrower_email,
+    ];
 
-        const values = [
-          borrower_id,
-          classroom_id,
-          borrow_type,
-          start_date,
-          end_date,
-          start_time,
-          end_time,
-          event_name,
-          people_count,
-          teacher_name,
-          reason,
-          '審核中',
-          '審核中',
-          teacher_department,
-          teacher_phone,
-          teacher_email,
-          borrower_department,
-          borrower_phone,
-          borrower_email,
-        ];
-
-        connection.query(insertSql, values, (err, result) => {
-          if (err) {
-            console.error('新增資料失敗:', err);
-            return rollbackAndRelease('資料庫錯誤', 500);
-          }
-
-          // 提交交易 (Commit)
-          connection.commit((err) => {
-            if (err) return rollbackAndRelease('交易提交失敗', 500);
-
-            connection.release();
-            res.json({ message: '申請已建立', request_id: result.insertId });
-          });
-        });
-      });
-    });
-  });
+    const [result] = await connection.query(insertSql, values);
+    await connection.commit();
+    res.json({ message: '申請已建立', request_id: result.insertId });
+  } catch (err) {
+    await connection.rollback();
+    console.error('新增資料失敗:', err);
+    res.status(500).json({ error: '資料庫錯誤' });
+  } finally {
+    connection.release();
+  }
 };
 
-exports.putCancelBookings = (req, res) => {
+exports.putCancelBookings = async (req, res) => {
   const sql = `
     UPDATE borrow_requests
     SET status = '已取消'
     WHERE request_id = ?;`;
 
   const value = req.params.id;
-  pool.query(sql, value, (err, result) => {
-    if (err) {
-      console.error('變更資料失敗:', err);
-      return res.status(500).json({ error: '資料庫錯誤' });
-    }
+
+  try {
+    await pool.query(sql, [value]);
     res.json({ message: '已取消', request_id: value });
-    //console.log(result);
-  });
+  } catch (err) {
+    console.error('變更資料失敗:', err);
+    res.status(500).json({ error: '資料庫錯誤' });
+  }
 };
 
-exports.putReturnBookings = (req, res) => {
+exports.putReturnBookings = async (req, res) => {
   const sql = `
     UPDATE borrow_requests
     SET status = '已歸還'
     WHERE request_id = ?;`;
 
   const value = req.params.id;
-  pool.query(sql, value, (err, result) => {
-    if (err) {
-      console.error('變更資料失敗:', err);
-      return res.status(500).json({ error: '資料庫錯誤' });
-    }
+
+  try {
+    await pool.query(sql, [value]);
     res.json({ message: '已歸還', request_id: value });
-    //console.log(result);
-  });
+  } catch (err) {
+    console.error('變更資料失敗:', err);
+    res.status(500).json({ error: '資料庫錯誤' });
+  }
 };

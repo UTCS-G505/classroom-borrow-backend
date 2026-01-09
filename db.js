@@ -15,4 +15,5 @@ const pool = mysql.createPool({
   charsetNumber: 45,
 });
 
+// Export promise-based pool for async/await usage
 module.exports = pool.promise();
