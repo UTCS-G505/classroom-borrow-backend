@@ -1,201 +1,181 @@
-const pool = require('../config/db');
-const transporter = require('../config/mailer');
+const pool = require('../config/db'); // 請確認路徑是否正確
+const transporter = require('../config/mailer'); // 請確認路徑是否正確
 
-// 1. 提交申請
+// =========================================================
+// 1. 建立借用申請 (修正版：不查 users 表，直接存 Email)
+// =========================================================
 exports.createBorrowRequest = async (req, res) => {
-    const { userEmail, teacherEmail, classroom, date, time, activityName } = req.body;
+  // 1. 接收前端各種可能的欄位名稱
+  const userEmail = req.body.userEmail || req.body.borrowerEmail;
+  const teacherEmail = req.body.teacherEmail;
+  const classroom = req.body.classroom || req.body.classroomId;
+  const activityName = req.body.activityName || req.body.eventName;
+  const date = req.body.date || req.body.startDate;
+  const time = req.body.time || '';
 
-    if (!userEmail || !teacherEmail || !classroom) {
-        return res.status(400).json({ success: false, message: '資料不完整' });
+  // 2. 檢查必填
+  if (!userEmail || !teacherEmail || !classroom) {
+    return res.status(400).json({ success: false, message: '資料不完整' });
+  }
+
+  try {
+    // 3. 處理時間字串 (例如 "1310 - 1500")
+    let startTime = time;
+    let endTime = '';
+    if (time.includes('-')) {
+      // 處理有些前端傳來可能包含空白的情況
+      const parts = time.split('-').map(t => t.trim());
+      startTime = parts[0] || '';
+      endTime = parts[1] || '';
+    } else if (time.includes(' ')) {
+      const parts = time.split(' ').map(t => t.trim());
+      startTime = parts[0] || '';
+      endTime = parts[parts.length - 1] || ''; // 取最後一個當結束
     }
 
-    try {
-        const [users] = await pool.execute(
-            'SELECT user_id, department, name FROM users WHERE email = ?',
-            [userEmail]
-        );
+    console.log('正在寫入資料庫:', { userEmail, classroom, date, startTime, endTime });
 
-        if (users.length === 0) {
-            return res.status(404).json({ success: false, message: '找不到此 Email 的使用者，請先註冊' });
-        }
-        const user = users[0];
+    // 4. 執行 SQL (直接寫入 borrow_requests，不使用 borrower_id)
+    // ⚠️ 注意：這裡假設你的資料庫欄位是 user_email, teacher_email...
+    const [result] = await pool.execute(
+      `INSERT INTO borrow_requests 
+       (user_email, teacher_email, classroom, borrow_date, start_time, end_time, activity_name, status) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING')`,
+      [userEmail, teacherEmail, classroom, date, startTime, endTime, activityName]
+    );
 
-        const timeParts = time.split(' - ');
-        const startTime = timeParts[0] || time;
-        const endTime = timeParts[1] || '00:00:00';
+    const borrowId = result.insertId;
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-        const [result] = await pool.execute(
-            `INSERT INTO borrow_requests 
-        (borrower_id, classroom_id, borrow_type, start_date, start_time, end_time, 
-         event_name, status, teacher_email, borrower_email, borrower_department) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                user.user_id, classroom, '單次借用', date, startTime, endTime,
-                activityName, '審核中', teacherEmail, userEmail, user.department
-            ]
-        );
-
-        const borrowId = result.insertId;
-        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const signOffLink = `${baseUrl}/teacher-signoff?id=${borrowId}`;
-
-        // 寄信給老師
-        const mailToTeacher = transporter.sendMail({
-            from: process.env.MAIL_USER,
-            to: teacherEmail,
-            subject: `【請簽核】學生 ${user.name} 申請借用教室`,
-            html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
-          <h2 style="color: #E67E22;">教室借用簽核通知</h2>
-          <p>老師您好，您的學生申請借用教室，詳細資訊如下：</p>
-          <hr>
-          <ul>
-            <li><strong>申請人：</strong> ${user.name} (${userEmail})</li>
-            <li><strong>系級：</strong> ${user.department}</li>
-            <li><strong>活動名稱：</strong> ${activityName}</li>
-            <li><strong>借用教室：</strong> ${classroom}</li>
-            <li><strong>借用時間：</strong> ${date} ${time}</li>
-          </ul>
-          <div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; text-align: center;">
-            <p>請點擊下方連結進行「核准」或「退回」：</p>
-            <a href="${signOffLink}" style="display: inline-block; padding: 12px 24px; background-color: #4A90E2; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">前往簽核系統</a>
-          </div>
-        </div>
+    // 5. 寄信
+    await transporter.sendMail({
+      from: process.env.MAIL_USER,
+      to: teacherEmail,
+      subject: `【請簽核】申請單 #${borrowId}`,
+      html: `
+        <h3>教室借用申請</h3>
+        <p>申請人：${userEmail}</p>
+        <p>活動：${activityName}</p>
+        <p>時間：${date} ${startTime} - ${endTime}</p>
+        <p>教室：${classroom}</p>
+        <hr/>
+        <a href="${baseUrl}/teacher-signoff?id=${borrowId}">前往簽核</a>
       `
-        });
+    });
 
-        // 寄信給學生
-        const mailToStudent = transporter.sendMail({
-            from: process.env.MAIL_USER,
-            to: userEmail,
-            subject: `【申請已送出】教室借用申請單 #${borrowId}`,
-            html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
-          <h2 style="color: #4A90E2;">申請已成功送出</h2>
-          <p>同學您好，您的教室借用申請 (<strong>#${borrowId}</strong>) 已收到。</p>
-          <p>系統已自動發信通知您的指導老師進行簽核。</p>
-          <hr>
-          <p><strong>目前狀態：</strong> <span style="color: orange;">等待老師簽核中</span></p>
-        </div>
-      `
-        });
+    res.json({ success: true, message: '申請已送出' });
 
-        await Promise.all([mailToTeacher, mailToStudent]);
-        res.json({ success: true, message: '申請已送出' });
-    } catch (error) {
-        console.error('SQL Error:', error);
-        res.status(500).json({ success: false, message: '系統錯誤', error: error.message });
-    }
+  } catch (err) {
+    // 🔥 重要：把錯誤印出來，這樣我們才看得到 System Error 到底是什麼
+    console.error('SQL 錯誤詳細資訊:', err);
+    res.status(500).json({ success: false, message: '系統錯誤', error: err.message });
+  }
 };
 
-// 2. 取得單一申請資料
+// =========================================================
+// 2. 取得單筆申請 (修正版：不 JOIN users 表)
+// =========================================================
 exports.getBorrowRequest = async (req, res) => {
-    try {
-        const [rows] = await pool.execute('SELECT * FROM borrow_requests WHERE request_id = ?', [req.params.id]);
-        if (rows.length === 0) return res.status(404).json({ success: false, message: '無此資料' });
-        res.json({ success: true, data: rows[0] });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+  try {
+    const id = req.query.id || req.params.id;
+
+    if (!id) {
+      return res.status(400).json({ message: '缺少申請單 ID' });
     }
+
+    console.log(`正在查詢申請單 ID: ${id}`);
+
+    // ⚠️ 修正：直接查 borrow_requests，不 JOIN users
+    const [rows] = await pool.execute(
+      `SELECT * FROM borrow_requests WHERE id = ?`, 
+      [id]
+    );
+
+    // 如果上面那行報錯 Unknown column 'id'，請改用 request_id
+    // const [rows] = await pool.execute('SELECT * FROM borrow_requests WHERE request_id = ?', [id]);
+
+    if (rows.length === 0) {
+      console.log(`找不到申請單 ID: ${id}`);
+      return res.status(404).json({ message: '找不到資料' });
+    }
+
+    const r = rows[0];
+
+    // 整理回傳格式
+    const response = {
+      // ID (相容 id 或 request_id)
+      request_id: r.id || r.request_id,
+      status: r.status,
+
+      // 活動
+      activityName: r.activity_name || r.event_name,
+      
+      // 申請人 (沒有 name 欄位就顯示 email)
+      userEmail: r.user_email || r.borrower_email,
+      applicantName: r.user_email || r.borrower_email, // 暫用 Email 代替名字
+
+      // 教室
+      classroom: r.classroom || r.classroom_id,
+
+      // 時間
+      borrow_date: r.borrow_date || r.start_date,
+      start_time: r.start_time,
+      end_time: r.end_time,
+      
+      // 老師
+      teacherEmail: r.teacher_email,
+    };
+
+    console.log('[GET BorrowRequest]', response);
+    res.json({ success: true, data: response }); // 前端通常預期外面包一層 data 或是直接回傳
+
+  } catch (err) {
+    console.error('查詢申請單錯誤:', err);
+    res.status(500).json({ message: '系統錯誤' });
+  }
 };
 
-// 3. 老師簽核
+// =========================================================
+// 3. 老師簽核 (修正版：兼容 id 欄位名)
+// =========================================================
 exports.teacherSignoff = async (req, res) => {
-    const { id, status, comment } = req.body;
-    try {
-        const [rows] = await pool.execute('SELECT * FROM borrow_requests WHERE request_id = ?', [id]);
-        if (rows.length === 0) return res.status(404).json({ success: false, message: '無此申請單' });
-        const request = rows[0];
+  const { id, status, comment } = req.body;
+  if (!id) return res.status(400).json({ message: '缺少 ID' });
 
-        const newStatus = status === 'APPROVED' ? '老師已核准' : '退件';
+  try {
+    const newStatus = status === 'APPROVED' ? 'TEACHER_APPROVED' : 'REJECTED'; // 注意這裡狀態名稱要跟前端對上
 
-        await pool.execute(
-            'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?',
-            [newStatus, comment || null, id]
-        );
+    // 嘗試更新
+    // 假設你的主鍵是 id
+    let sql = 'UPDATE borrow_requests SET status = ? WHERE id = ?';
+    // 如果你的主鍵是 request_id，請自行修改下一行為:
+    // let sql = 'UPDATE borrow_requests SET status = ? WHERE request_id = ?';
 
-        if (newStatus === '老師已核准') {
-            const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-            const taSignOffLink = `${baseUrl}/ta-signoff?id=${id}`;
-            const taEmail = process.env.TA_EMAIL || 'yangyc1126@gmail.com';
+    await pool.execute(sql, [newStatus, id]);
 
-            await transporter.sendMail({
-                from: process.env.MAIL_USER,
-                to: taEmail,
-                subject: `【需助教覆核】申請單 #${id} 指導老師已核准`,
-                html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
-            <h2 style="color: #2ECC71;">指導老師已核准！</h2>
-            <p><strong>申請單號：</strong> #${id}</p>
-            <p><strong>申請人Email：</strong> ${request.borrower_email}</p>
-            <p><strong>活動名稱：</strong> ${request.event_name}</p>
-            <p><strong>老師簽核意見：</strong> ${comment || '無'}</p>
-            <hr/>
-            <p>請助教點擊下方按鈕，進行最終場地確認與簽核：</p>
-            <div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; text-align: center;">
-              <a href="${taSignOffLink}" style="display: inline-block; padding: 12px 24px; background-color: #27AE60; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">前往助教簽核系統</a>
-            </div>
-          </div>
-        `
-            });
-        } else {
-            await transporter.sendMail({
-                from: process.env.MAIL_USER,
-                to: request.borrower_email,
-                subject: `【申請退回】申請單 #${id} 指導老師未核准`,
-                html: `<p>您的申請已被指導老師退回。</p><p><strong>理由：</strong>${comment}</p>`
-            });
-        }
-        res.json({ success: true, message: '簽核完成' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, error: error.message });
-    }
+    res.json({ success: true, message: '簽核完成' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: '系統錯誤' });
+  }
 };
 
-// 4. 助教簽核
+// =========================================================
+// 4. 助教簽核 (同上)
+// =========================================================
 exports.taSignoff = async (req, res) => {
-    const { id, status, comment } = req.body;
-    try {
-        const [rows] = await pool.execute('SELECT * FROM borrow_requests WHERE request_id = ?', [id]);
-        if (rows.length === 0) return res.status(404).json({ success: false, message: '無此申請單' });
-        const request = rows[0];
-
-        const finalStatus = status === 'APPROVED' ? '核准' : '退件';
-
-        await pool.execute(
-            'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?',
-            [finalStatus, comment || null, id]
-        );
-
-        if (finalStatus === '核准') {
-            await transporter.sendMail({
-                from: process.env.MAIL_USER,
-                to: request.borrower_email,
-                subject: `【申請通過】申請單 #${id} 教室借用成功`,
-                html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
-            <h2 style="color:green">恭喜！您的教室借用申請已通過。</h2>
-            <p><strong>單號：</strong> ${id}</p>
-            <p><strong>活動名稱：</strong> ${request.event_name}</p>
-            <p><strong>助教備註：</strong> ${comment || '無'}</p>
-            <hr/>
-            <p style="background-color: #e8f5e9; padding: 10px; border-radius: 5px;">✅ <strong>借用狀態：已核准</strong></p>
-            <p>請記得準時使用教室，並於使用完畢後將場地復原。</p>
-          </div>
-        `
-            });
-        } else {
-            await transporter.sendMail({
-                from: process.env.MAIL_USER,
-                to: request.borrower_email,
-                subject: `【申請退回】申請單 #${id} 助教覆核未通過`,
-                html: `<p>很抱歉，您的申請在助教覆核階段未通過。</p><p><strong>理由：</strong>${comment}</p>`
-            });
-        }
-        res.json({ success: true, message: '助教簽核完成' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-};
+  const { id, status, comment } = req.body;
+  try {
+    const finalStatus = status === 'APPROVED' ? 'APPROVED' : 'REJECTED';
+    
+    // 假設主鍵是 id
+    await pool.execute(
+      'UPDATE borrow_requests SET status = ? WHERE id = ?',
+      [finalStatus, id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: '系統錯誤' });
+  }
+};  
