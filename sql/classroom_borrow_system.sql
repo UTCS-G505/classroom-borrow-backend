@@ -40,7 +40,7 @@ CREATE TABLE borrow_requests (
   people_count INT,
   teacher_name VARCHAR(50),
   reason TEXT,
-  status ENUM('審核中','核准','退件','已歸還','已取消') DEFAULT '審核中',
+  status ENUM('審核中','教師核准','核准','退件','已歸還','已取消') DEFAULT '審核中',
   reject_reason TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   -- 以下為申請當下快照（避免使用者資料改變導致紀錄不同）

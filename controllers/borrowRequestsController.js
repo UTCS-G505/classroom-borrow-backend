@@ -164,7 +164,7 @@ exports.postBookings = async (req, res) => {
         date: sDate,
         startTime: start_time,
         endTime: end_time,
-        baseUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
+        baseUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
       });
     }
 
@@ -213,22 +213,23 @@ exports.putReturnBookings = async (req, res) => {
 
 exports.teacherSignoff = async (req, res) => {
   const { id, status, comment } = req.body;
-  console.log(id, status, comment);
+
   try {
-    const newStatus = status === '核准' ? '核准' : '退件';
-    
-    await pool.execute('UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?', 
+    const newStatus = status === '核准' ? '教師核准' : '退件';
+
+    await pool.execute(
+      'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?',
       [newStatus, comment || '', id]
     );
 
-    if (newStatus === '核准') {
+    if (newStatus === '教師核准') {
       const taEmail = process.env.TA_EMAIL || 'yangyc1126@gmail.com';
       const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      
+
       await emailService.sendTASignoffMail({
         taEmail,
         borrowId: id,
-        baseUrl
+        baseUrl,
       });
     }
     res.json({ success: true, message: '簽核完成' });
@@ -241,17 +242,20 @@ exports.teacherSignoff = async (req, res) => {
 exports.taSignoff = async (req, res) => {
   const { id, status } = req.body;
   try {
-    // 1. 先抓取申請單資料，才知道要寄給誰
-    const [rows] = await pool.execute('SELECT * FROM borrow_requests WHERE request_id = ?', [id]);
-    if (rows.length === 0) return res.status(404).json({ success: false, message: '找不到申請單' });
+    const [rows] = await pool.execute(
+      'SELECT * FROM borrow_requests WHERE request_id = ?',
+      [id]
+    );
+    if (rows.length === 0)
+      return res.status(404).json({ success: false, message: '找不到申請單' });
     const request = rows[0];
 
-    // 2. 更新狀態
-    const finalStatus = status === 'APPROVED' ? 'APPROVED' : 'REJECTED';
-    await pool.execute('UPDATE borrow_requests SET status = ? WHERE request_id = ?', [finalStatus, id]);
+    await pool.execute(
+      'UPDATE borrow_requests SET status = ? WHERE request_id = ?',
+      [status, id]
+    );
 
-    // 3. 寄信通知申請人 (如果核准的話)
-    if (finalStatus === 'APPROVED') {
+    if (status === '核准') {
       await emailService.sendApprovalNotification({
         userEmail: request.borrower_email,
         borrowId: id,
@@ -259,7 +263,7 @@ exports.taSignoff = async (req, res) => {
         classroom: request.classroom_id,
         startDate: request.start_date,
         startTime: request.start_time, // Note: DB format might be needed
-        endTime: request.end_time
+        endTime: request.end_time,
       });
     }
 

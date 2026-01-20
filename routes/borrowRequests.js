@@ -184,13 +184,7 @@ router.put(
     */
   controller.putReturnBookings
 );
-router.post(
-  '/signoff',
-  controller.teacherSignoff
-);
-router.post(
-  '/ta-signoff',
-  controller.taSignoff
-);
+router.post('/signoff', controller.teacherSignoff);
+router.post('/ta-signoff', controller.taSignoff);
 
 module.exports = router;
