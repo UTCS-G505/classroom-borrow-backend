@@ -1,5 +1,6 @@
 const pool = require('../db');
 const dayjs = require('dayjs');
+const emailService = require('../services/emailService');
 
 exports.getBookings = async (req, res) => {
   try {
@@ -151,6 +152,22 @@ exports.postBookings = async (req, res) => {
 
     const [result] = await connection.query(insertSql, values);
     await connection.commit();
+
+    // 寄信給老師
+    if (teacher_email) {
+      await emailService.sendTeacherSignoffMail({
+        teacherEmail: teacher_email,
+        borrowId: result.insertId,
+        userEmail: borrower_email,
+        activityName: event_name,
+        classroom: classroom_id,
+        date: sDate,
+        startTime: start_time,
+        endTime: end_time,
+        baseUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
+      });
+    }
+
     res.json({ message: '申請已建立', request_id: result.insertId });
   } catch (err) {
     await connection.rollback();
@@ -190,7 +207,65 @@ exports.putReturnBookings = async (req, res) => {
     await pool.query(sql, [value]);
     res.json({ message: '已歸還', request_id: value });
   } catch (err) {
-    console.error('變更資料失敗:', err);
     res.status(500).json({ error: '資料庫錯誤' });
+  }
+};
+
+exports.teacherSignoff = async (req, res) => {
+  const { id, status, comment } = req.body;
+  console.log(id, status, comment);
+  try {
+    const newStatus = status === '核准' ? '核准' : '退件';
+    
+    await pool.execute('UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?', 
+      [newStatus, comment || '', id]
+    );
+
+    if (newStatus === '核准') {
+      const taEmail = process.env.TA_EMAIL || 'yangyc1126@gmail.com';
+      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      
+      await emailService.sendTASignoffMail({
+        taEmail,
+        borrowId: id,
+        baseUrl
+      });
+    }
+    res.json({ success: true, message: '簽核完成' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+exports.taSignoff = async (req, res) => {
+  const { id, status } = req.body;
+  try {
+    // 1. 先抓取申請單資料，才知道要寄給誰
+    const [rows] = await pool.execute('SELECT * FROM borrow_requests WHERE request_id = ?', [id]);
+    if (rows.length === 0) return res.status(404).json({ success: false, message: '找不到申請單' });
+    const request = rows[0];
+
+    // 2. 更新狀態
+    const finalStatus = status === 'APPROVED' ? 'APPROVED' : 'REJECTED';
+    await pool.execute('UPDATE borrow_requests SET status = ? WHERE request_id = ?', [finalStatus, id]);
+
+    // 3. 寄信通知申請人 (如果核准的話)
+    if (finalStatus === 'APPROVED') {
+      await emailService.sendApprovalNotification({
+        userEmail: request.borrower_email,
+        borrowId: id,
+        eventName: request.event_name,
+        classroom: request.classroom_id,
+        startDate: request.start_date,
+        startTime: request.start_time, // Note: DB format might be needed
+        endTime: request.end_time
+      });
+    }
+
+    res.json({ success: true, message: '助教簽核完成' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
 };
