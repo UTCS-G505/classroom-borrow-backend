@@ -44,7 +44,6 @@ async function syncUserToLocalDB(uid, accessToken) {
         'UPDATE users SET name = ?, department = ? WHERE email = ?',
         [name, department, email]
       );
-      console.log(`Updated existing user: ${email}`);
       return {
         user_id: existingUsers[0].user_id,
         email,
