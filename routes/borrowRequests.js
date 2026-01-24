@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/borrowRequestsController');
+const { authenticateToken } = require('../middleware/authMiddleware');
+
+// All borrow request routes require authentication
+router.use(authenticateToken);
 
 router.get(
   '/',

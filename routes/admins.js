@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/adminsController');
+const {
+  authenticateToken,
+  authorizeAdmin,
+} = require('../middleware/authMiddleware');
+
+// Apply authentication and admin authorization to all admin routes
+router.use(authenticateToken);
+router.use(authorizeAdmin);
 
 router.get(
   '/bookings',
