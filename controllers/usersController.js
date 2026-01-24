@@ -25,12 +25,12 @@ async function syncUserToLocalDB(uid, accessToken) {
       return null;
     }
 
-    console.log('userData: ', userData);
     const profile = userData.data;
     const email = profile.primary_email;
     const name = profile.name || profile.username || email.split('@')[0];
     const role = profile.role || 6;
     const department = role <= 4 ? '資科系' : null;
+    const phone_number = profile.phone_number || null;
 
     // Check if user exists in local DB
     const [existingUsers] = await db.query(
@@ -54,8 +54,8 @@ async function syncUserToLocalDB(uid, accessToken) {
       };
     } else {
       const [result] = await db.query(
-        'INSERT INTO users (name, email, password, role, department) VALUES (?, ?, ?, ?, ?)',
-        [name, email, 'SSO_AUTH', role, department]
+        'INSERT INTO users (name, email, phone_number, role, department) VALUES (?, ?, ?, ?, ?)',
+        [name, email, phone_number, role, department]
       );
       console.log(`Created new user: ${email} with ID: ${result.insertId}`);
       return {

@@ -9,8 +9,8 @@ CREATE TABLE users (
   user_id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(50) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('student','teacher','admin') NOT NULL,
+  phone_number VARCHAR(20),
+  role INT NOT NULL DEFAULT 6,
   department VARCHAR(50),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -104,14 +104,14 @@ SHOW TABLES;
 
 
 
--- 假資料：users（先建立使用者）
-INSERT INTO users (name, email, password, role, department)
-VALUES
-  ('陳小明','s001@example.edu','pwd123','student','資訊系'),
-  ('李老師','teacher01@example.edu','teachpass','teacher','音樂系'),
-  ('王管理員','admin01@example.edu','adminpass','admin','教務處'),
-  ('張學生','s002@example.edu','pwd456','student','外文系'),
-  ('林老師','teacher02@example.edu','teach234','teacher','視覺設計系');
+-- -- 假資料：users（先建立使用者）
+-- INSERT INTO users (name, email, password, role, department)
+-- VALUES
+--   ('陳小明','s001@example.edu','pwd123','student','資訊系'),
+--   ('李老師','teacher01@example.edu','teachpass','teacher','音樂系'),
+--   ('王管理員','admin01@example.edu','adminpass','admin','教務處'),
+--   ('張學生','s002@example.edu','pwd456','student','外文系'),
+--   ('林老師','teacher02@example.edu','teach234','teacher','視覺設計系');
 
 -- 假資料：classrooms（教室）
 INSERT INTO classrooms (classroom_id, name, type, capacity, description, image_url)
