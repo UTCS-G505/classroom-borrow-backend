@@ -41,7 +41,8 @@ services:
     container_name: classroom-backend
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - '3000:3000'
     environment:
