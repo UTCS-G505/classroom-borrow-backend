@@ -54,3 +54,4 @@ services:
       # 👇 這裡就是我們剛剛要補上的環境變數
       MAIL_USER: ${MAIL_USER}
       MAIL_PASS: ${MAIL_PASS}
+      TA_EMAIL: ${TA_EMAIL}

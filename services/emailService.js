@@ -84,8 +84,41 @@ const sendApprovalNotification = async ({
   });
 };
 
+const sendRejectionNotification = async ({
+  userEmail,
+  borrowId,
+  eventName,
+  classroom,
+  startDate,
+  startTime,
+  endTime,
+  reason,
+}) => {
+  await transporter.sendMail({
+    from: process.env.MAIL_USER,
+    to: userEmail,
+    subject: `【申請駁回】教室借用申請單 #${borrowId} 未通過`,
+    html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
+            <h2 style="color:red">⚠️ 很遺憾，您的申請已被駁回。</h2>
+            <p><strong>申請單號：</strong> #${borrowId}</p>
+            <p><strong>活動名稱：</strong> ${eventName}</p>
+            <p><strong>借用教室：</strong> ${classroom}</p>
+            <p><strong>借用日期：</strong> ${formatDateForDisplay(startDate)}</p>
+            <p><strong>借用時間：</strong> ${formatTimeForDisplay(startTime)} - ${formatTimeForDisplay(endTime)}</p>
+            <hr/>
+            <p style="background-color: #ffebee; padding: 10px; border-radius: 5px;">
+               ❌ <strong>駁回理由：</strong> ${reason || '未提供理由'}
+            </p>
+            <p>如有疑問，請聯繫相關管理單位。</p>
+          </div>
+        `,
+  });
+};
+
 module.exports = {
   sendTeacherSignoffMail,
   sendTASignoffMail,
   sendApprovalNotification,
+  sendRejectionNotification,
 };

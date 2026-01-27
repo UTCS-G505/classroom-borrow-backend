@@ -267,6 +267,29 @@ exports.teacherSignoff = async (req, res) => {
       } catch (emailError) {
         console.error('助教通知信寄送失敗:', emailError);
       }
+    } else if (newStatus === '退件') {
+      // 駁回通知申請人
+      try {
+        const [rows] = await pool.query(
+          'SELECT * FROM borrow_requests WHERE request_id = ?',
+          [id]
+        );
+        if (rows.length > 0) {
+          const reqData = rows[0];
+          await emailService.sendRejectionNotification({
+            userEmail: reqData.borrower_email,
+            borrowId: id,
+            eventName: reqData.event_name,
+            classroom: reqData.classroom_id,
+            startDate: reqData.start_date,
+            startTime: reqData.start_time,
+            endTime: reqData.end_time,
+            reason: comment,
+          });
+        }
+      } catch (emailError) {
+        console.error('駁回通知信寄送失敗:', emailError);
+      }
     }
     res.json({ success: true, message: '簽核完成' });
   } catch (err) {
@@ -276,7 +299,7 @@ exports.teacherSignoff = async (req, res) => {
 };
 
 exports.taSignoff = async (req, res) => {
-  const { id, status } = req.body;
+  const { id, status, reject_reason } = req.body;
 
   // 取得資料庫連線以啟動交易 (確保核准過程的原子性)
   const connection = await pool.getConnection();
@@ -349,8 +372,8 @@ exports.taSignoff = async (req, res) => {
     }
 
     await connection.query(
-      'UPDATE borrow_requests SET status = ? WHERE request_id = ?',
-      [status, id]
+      'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?',
+      [status, status === '退件' ? reject_reason : null, id]
     );
 
     await connection.commit();
@@ -368,6 +391,21 @@ exports.taSignoff = async (req, res) => {
         });
       } catch (emailError) {
         console.error('核准通知信寄送失敗:', emailError);
+      }
+    } else if (status === '退件') {
+      try {
+        await emailService.sendRejectionNotification({
+          userEmail: request.borrower_email,
+          borrowId: id,
+          eventName: request.event_name,
+          classroom: request.classroom_id,
+          startDate: request.start_date,
+          startTime: request.start_time,
+          endTime: request.end_time,
+          reason: reject_reason,
+        });
+      } catch (emailError) {
+        console.error('駁回通知信寄送失敗:', emailError);
       }
     }
 
