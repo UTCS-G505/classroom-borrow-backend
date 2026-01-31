@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const db = require('../db');
+const { getJwtSub } = require('../utils/jwtUtils');
 
 // Read public key once at startup
 // const PUBLIC_KEY = fs.readFileSync(
@@ -38,7 +39,7 @@ exports.authenticateToken = async (req, res, next) => {
     }
 
     // Get user from local database to include role information
-    const uid = req.cookies['uid'] || decoded.sub || decoded.uid;
+    const uid = getJwtSub(accessToken) || decoded.sub || decoded.uid;
 
     if (uid) {
       try {

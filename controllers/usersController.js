@@ -1,5 +1,6 @@
 const ssoService = require('../services/ssoService');
 const db = require('../db');
+const { getJwtSub } = require('../utils/jwtUtils');
 
 // Cookie 配置 - 開發環境跨域設定
 const COOKIE_OPTIONS = {
@@ -101,9 +102,8 @@ exports.login = async (req, res) => {
       const refreshTokenCookie = cookies.find((cookie) =>
         cookie.startsWith('refresh_token=')
       );
-      const uid = cookies.find((cookie) => cookie.startsWith('uid='));
-
-      if (!accessToken || !refreshTokenCookie || !uid) {
+      
+      if (!accessToken || !refreshTokenCookie) {
         res.status(500).json({
           success: false,
           message: 'SSO 未回傳必要的驗證資料',
@@ -116,8 +116,8 @@ exports.login = async (req, res) => {
         res.cookie('refresh_token', refreshToken, COOKIE_OPTIONS);
       }
 
-      const uidValue = uid.split(';')[0].split('=')[1];
-      if (uid) {
+      const uidValue = getJwtSub(accessToken);
+      if (uidValue) {
         res.cookie('uid', uidValue, { ...COOKIE_OPTIONS, httpOnly: false }); // uid 可讓前端讀取
       }
 
