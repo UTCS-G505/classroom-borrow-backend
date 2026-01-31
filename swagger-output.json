@@ -94,6 +94,13 @@
         "tags": ["admin"],
         "description": "取得所有申請",
         "produces": ["application/json; charset=utf-8"],
+        "parameters": [
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -189,6 +196,15 @@
                 "name": "main"
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
@@ -209,6 +225,11 @@
               "type": "string",
               "example": "3"
             }
+          },
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
           },
           {
             "name": "body",
@@ -253,6 +274,12 @@
           "400": {
             "description": "Bad Request"
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "404": {
             "description": "Not Found"
           },
@@ -271,6 +298,11 @@
         "description": "新增公告",
         "produces": ["application/json; charset=utf-8"],
         "parameters": [
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
+          },
           {
             "name": "body",
             "in": "body",
@@ -318,6 +350,12 @@
           "400": {
             "description": "Bad Request"
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "500": {
             "description": "Internal Server Error"
           }
@@ -330,6 +368,11 @@
         "description": "新增黑名單",
         "produces": ["application/json; charset=utf-8"],
         "parameters": [
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
+          },
           {
             "name": "body",
             "in": "body",
@@ -377,6 +420,12 @@
           "400": {
             "description": "Bad Request"
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "500": {
             "description": "Internal Server Error"
           }
@@ -399,6 +448,11 @@
               "type": "number",
               "example": 2
             }
+          },
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
@@ -420,6 +474,12 @@
                 "name": "main"
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "500": {
             "description": "Internal Server Error"
@@ -463,6 +523,9 @@
                 "name": "main"
               }
             }
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
@@ -530,6 +593,11 @@
         "produces": ["application/json; charset=utf-8"],
         "parameters": [
           {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
+          },
+          {
             "name": "id",
             "in": "query",
             "description": "使用者編號",
@@ -544,6 +612,12 @@
           "200": {
             "description": "OK"
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "500": {
             "description": "Internal Server Error"
           }
@@ -554,6 +628,11 @@
         "description": "新增申請",
         "produces": ["application/json; charset=utf-8"],
         "parameters": [
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
+          },
           {
             "name": "body",
             "in": "body",
@@ -657,6 +736,15 @@
           "400": {
             "description": "Bad Request"
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
+          },
           "500": {
             "description": "Internal Server Error"
           }
@@ -679,6 +767,11 @@
               "type": "number",
               "example": 7
             }
+          },
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
@@ -753,6 +846,12 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
           "500": {
             "description": "Internal Server Error"
           }
@@ -775,6 +874,11 @@
               "type": "string",
               "example": "1"
             }
+          },
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
@@ -796,6 +900,12 @@
                 "name": "main"
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "500": {
             "description": "Internal Server Error"
@@ -819,6 +929,11 @@
               "type": "string",
               "example": "1"
             }
+          },
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
           }
         ],
         "responses": {
@@ -840,6 +955,12 @@
                 "name": "main"
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "500": {
             "description": "Internal Server Error"
@@ -1143,6 +1264,153 @@
                 "name": "main"
               }
             }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/login": {
+      "post": {
+        "tags": ["auth"],
+        "description": "",
+        "produces": ["application/json; charset=utf-8"],
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "account": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/refresh": {
+      "post": {
+        "tags": ["auth"],
+        "description": "",
+        "produces": ["application/json; charset=utf-8"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/logout": {
+      "post": {
+        "tags": ["auth"],
+        "description": "",
+        "produces": ["application/json; charset=utf-8"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/user/profile": {
+      "get": {
+        "tags": ["auth"],
+        "description": "",
+        "produces": ["application/json; charset=utf-8"],
+        "parameters": [
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "uid",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/users/profile": {
+      "get": {
+        "tags": ["users"],
+        "description": "",
+        "produces": ["application/json; charset=utf-8"],
+        "parameters": [
+          {
+            "name": "substring(7",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "uid",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "500": {
             "description": "Internal Server Error"
