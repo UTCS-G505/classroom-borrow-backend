@@ -6,11 +6,11 @@ USE classroom_borrow_system;
 
 -- users（使用者）
 CREATE TABLE users (
-  user_id VARCHAR(20) PRIMARY KEY,
+  user_id VARCHAR(36) PRIMARY KEY,
   name VARCHAR(50) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('student','teacher','admin') NOT NULL,
+  phone_number VARCHAR(20),
+  role INT NOT NULL DEFAULT 6,
   department VARCHAR(50),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -29,7 +29,7 @@ CREATE TABLE classrooms (
 -- borrow_requests（借用申請）
 CREATE TABLE borrow_requests (
   request_id INT AUTO_INCREMENT PRIMARY KEY,
-  borrower_id VARCHAR(20) NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
   classroom_id VARCHAR(10) NOT NULL,
   borrow_type ENUM('單次借用','多次借用') NOT NULL,
   start_date DATE NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE borrow_requests (
   borrower_department VARCHAR(50),
   borrower_phone VARCHAR(20),
   borrower_email VARCHAR(100),
-  FOREIGN KEY (borrower_id) REFERENCES users(user_id)
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE ON UPDATE CASCADE,
   FOREIGN KEY (classroom_id) REFERENCES classrooms(classroom_id)
     ON DELETE CASCADE ON UPDATE CASCADE
@@ -68,7 +68,7 @@ CREATE TABLE announcements (
 -- blacklist（違規名單）
 CREATE TABLE blacklist (
   blacklist_id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id VARCHAR(20) NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
   reason TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   expired_at DATETIME NULL,
@@ -82,7 +82,7 @@ CREATE TABLE schedule (
   classroom_id VARCHAR(10) NOT NULL,
   date DATE NOT NULL,
   time_slot VARCHAR(20) NOT NULL,
-  booked_by VARCHAR(20),
+  booked_by VARCHAR(36),
   borrow_request_id INT,
   event_name VARCHAR(100),
   status ENUM('已預約','已取消') DEFAULT '已預約',
@@ -102,92 +102,39 @@ CREATE INDEX idx_schedule_date_classroom ON schedule(classroom_id, date);
 -- 檢查建立結果
 SHOW TABLES;
 
-
-
--- 假資料：users（先建立使用者）
-INSERT INTO users (user_id, name, email, password, role, department)
-VALUES
-  ('u11216047', '測試學生', 'test@example.edu', 'pwd123', 'student', '資訊系'),
-  ('u001', '陳小明','s001@example.edu','pwd123','student','資訊系'),
-  ('t001', '李老師','teacher01@example.edu','teachpass','teacher','音樂系'),
-  ('admin001', '王管理員','admin01@example.edu','adminpass','admin','教務處'),
-  ('u002', '張學生','s002@example.edu','pwd456','student','外文系'),
-  ('t002', '林老師','teacher02@example.edu','teach234','teacher','視覺設計系');
-
--- 假資料：classrooms（教室）
 INSERT INTO classrooms (classroom_id, name, type, capacity, description, image_url)
 VALUES
-  ('C101','第一演奏廳','音樂教室',120,'有鋼琴與舞台','/images/C101.jpg'),
-  ('C102','第二教室','一般教室',40,'投影、白板','/images/C102.jpg'),
-  ('R201','多媒體室','電腦教室',30,'有多媒體電腦','/images/R201.jpg'),
-  ('H01','視覺工作室','工作室',20,'繪畫、設備較多','/images/H01.jpg');
+  ('G312','G312 會議室','會議室',20,NULL,NULL),
+  ('G313','G313 普通教室','普通教室',40,NULL,NULL),
+  ('G314','G314 普通教室','普通教室',40,NULL,NULL),
+  ('G315','G315 電腦教室','電腦教室',30,NULL,NULL),
+  ('G316','G316 電腦教室','電腦教室',30,NULL,NULL),
+  ('G501','G501 會議室','會議室',20,NULL,NULL),
+  ('G508','G508 系圖書室','系圖書室',15,NULL,NULL),
+  ('G509','G509 IOS教室','電腦教室',30,NULL,NULL),
+  ('G516','G516 電腦教室','電腦教室',30,NULL,NULL);
 
 -- 假資料：borrow_requests（借用申請）
--- borrower_id 替換為上面對應的字串 ID
-INSERT INTO borrow_requests (
-  borrower_id, classroom_id, borrow_type, start_date, end_date,
-  start_time, end_time, event_name, people_count, teacher_name,
-  reason, status, reject_reason,
-  teacher_department, teacher_phone, teacher_email,
-  borrower_department, borrower_phone, borrower_email
-) VALUES
--- 單次借用，審核中
--- 單次借用，審核中 (u001)
-('u001', 'C101', '單次借用', '2025-11-20', NULL, '13:00:00', '16:00:00',
- '弦樂四重奏期末演出', 50, '李老師', '期末演出排練與表演', '審核中', NULL,
- '音樂系','02-1234-5678','teacher01@example.edu',
- '資訊系','0912-000001','s001@example.edu'
-),
--- 核准、已預約（同一天另一時段）
--- 核准、已預約 (u002)
-('u002', 'C101', '單次借用', '2025-11-20', NULL, '09:00:00', '11:00:00',
- '英文戲劇社演出', 70, '林老師', '社團演出', '核准', NULL,
- '視覺設計系','02-2345-6789','teacher02@example.edu',
- '外文系','0912-222222','s002@example.edu'
-),
--- 多次借用（週次範例）: 期中至期末的每週固定時段（end_date 設為結束日）
--- 多次借用 (u001)
-('u001', 'R201', '多次借用', '2025-10-01', '2025-12-31', '18:00:00', '20:00:00',
- '程式設計作業輔導', 20, '李老師', '每週二晚間固定輔導', '核准', NULL,
- '音樂系','02-1234-5678','teacher01@example.edu',
- '資訊系','0912-000001','s001@example.edu'
-),
--- 被退件的申請（含退件理由）
--- 被退件的申請 (u001)
-('u001', 'H01', '單次借用', '2025-11-05', NULL, '10:00:00', '12:00:00',
- '大型繪畫工作坊', 25, '林老師', '活動需要較多空間', '退件', '場地與設備不可同時租借',
- '視覺設計系','02-2345-6789','teacher02@example.edu',
- '資訊系','0912-000001','s001@example.edu'
-),
--- 已歸還（過去的借用）
--- 已歸還 (t001)
-('t001', 'C102', '單次借用', '2025-09-15', NULL, '14:00:00', '16:00:00',
- '名師講座：音樂史導讀', 30, '李老師', '邀請外賓講座', '已歸還', NULL,
- '音樂系','02-1234-5678','teacher01@example.edu',
- '視覺設計系','0912-333333','teacher01@example.edu'
-),
--- 申請後使用者取消
--- 申請後使用者取消 (u002)
-('u002', 'C102', '單次借用', '2025-11-25', NULL, '10:00:00', '12:00:00',
- '學生讀書會', 15, '林老師', '讀書會', '已取消', NULL,
- '視覺設計系','02-2345-6789','teacher02@example.edu',
- '外文系','0912-222222','s002@example.edu'
-);
+-- 注意 borrower_id 參照上面 users 的自增 id (通常 1,2,3,...)
+-- INSERT INTO borrow_requests (
+--   borrower_id, classroom_id, borrow_type, start_date, end_date,
+--   start_time, end_time, event_name, people_count, teacher_name,
+--   reason, status, reject_reason,
+--   teacher_department, teacher_phone, teacher_email,
+--   borrower_department, borrower_phone, borrower_email
+-- ) VALUES
+-- -- 單次借用，審核中
+-- (1, 'G509', '單次借用', '2025-11-20', NULL, '13:00:00', '16:00:00',
+--  '程式設計期末報告', 30, '李老師', '期末演示', '審核中', NULL,
+--  '資科系','02-1234-5678','teacher01@example.edu',
+--  '資科系','0912-000001','s001@example.edu'
+-- );
 
 -- 假資料：schedule（時段表）
--- 將部分 borrow_requests 連結到 schedule，檢驗 UNIQUE(classroom_id,date,time_slot) 約束
--- time_slot 以 "HH:MM-HH:MM" 格式存
-INSERT INTO schedule (classroom_id, date, time_slot, booked_by, borrow_request_id, event_name, status)
-VALUES
--- booked_by 對應上面的字串 ID
-('C101','2025-11-20','09:00-11:00','u002',2,'英文戲劇社演出','已預約'),
--- 第一筆申請在 C101 13:00-16:00（避免時段衝突）
-('C101','2025-11-20','13:00-16:00','u001',1,'弦樂四重奏期末演出','已預約'),
--- R201 的多次借用（先加入一個週期的時段）
-('R201','2025-11-04','18:00-20:00','u001',3,'程式設計作業輔導','已預約'),
-('R201','2025-11-11','18:00-20:00','u001',3,'程式設計作業輔導','已預約'),
--- 已歸還的過去時段
-('C102','2025-09-15','14:00-16:00','t001',5,'名師講座：音樂史導讀','已預約');
+-- INSERT INTO schedule (classroom_id, date, time_slot, booked_by, borrow_request_id, event_name, status)
+-- VALUES
+-- ('G509','2025-11-20','13:00-16:00',1,1,'程式設計期末報告','已預約');
+
 
 -- 假資料：announcements（公告）
 INSERT INTO announcements (title, content, expired_at)
@@ -204,7 +151,7 @@ VALUES
 -- 檢查資料（簡單 SELECT 範例）
 SELECT user_id,name,email,role FROM users;
 SELECT classroom_id,name,type,capacity FROM classrooms;
-SELECT request_id,borrower_id,classroom_id,borrow_type,start_date,start_time,end_time,status FROM borrow_requests;
+SELECT request_id,user_id,classroom_id,borrow_type,start_date,start_time,end_time,status FROM borrow_requests;
 SELECT * FROM schedule;
 SELECT * FROM announcements;
 SELECT * FROM blacklist;

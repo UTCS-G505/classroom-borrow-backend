@@ -3,6 +3,7 @@ const axios = require('axios');
 // === 設定 ===
 const SSO_API_URL =
   process.env.SSO_API_URL || 'https://algotutor.utaipei.edu.tw:1777/api/v1';
+const USER_AGENT = 'ClassroomBorrowBackend';
 
 /**
  * 向 SSO 發送登入請求
@@ -18,7 +19,10 @@ exports.loginToSSO = async (account, password) => {
   console.log('正在發送請求至 SSO...');
 
   const response = await axios.post(SSO_API_URL + '/auth/login', params, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': USER_AGENT,
+    },
     withCredentials: true,
   });
 
@@ -38,6 +42,7 @@ exports.refreshTokenFromSSO = async (refreshToken) => {
       headers: {
         'Content-Type': 'application/json',
         Cookie: `refresh_token=${refreshToken}`,
+        'User-Agent': USER_AGENT,
       },
       withCredentials: true,
     }
@@ -59,6 +64,7 @@ exports.logoutFromSSO = async (refreshToken) => {
       headers: {
         'Content-Type': 'application/json',
         Cookie: `refresh_token=${refreshToken}`,
+        'User-Agent': USER_AGENT,
       },
       withCredentials: true,
     }
@@ -78,6 +84,7 @@ exports.getUserProfileFromSSO = async (uid, accessToken) => {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
+      'User-Agent': USER_AGENT,
     },
     withCredentials: true,
   });

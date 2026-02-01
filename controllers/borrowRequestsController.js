@@ -6,7 +6,7 @@ exports.getBookings = async (req, res) => {
   try {
     const id = req.query.id;
     const sql =
-      'SELECT * FROM borrow_requests WHERE borrower_id = ? ORDER BY created_at DESC';
+      'SELECT * FROM borrow_requests WHERE user_id = ? ORDER BY created_at DESC';
     const [rows] = await pool.query(sql, [id]);
     res.json(rows);
   } catch (err) {
@@ -29,7 +29,7 @@ exports.getBookingsById = async (req, res) => {
 
 exports.postBookings = async (req, res) => {
   var {
-    borrower_id,
+    user_id,
     classroom_id,
     borrow_type,
     start_date,
@@ -49,7 +49,7 @@ exports.postBookings = async (req, res) => {
   } = req.body;
 
   const missing = [];
-  if (!borrower_id) missing.push('borrower_id');
+  if (!user_id) missing.push('user_id');
   if (!classroom_id) missing.push('classroom_id');
   if (!borrow_type) missing.push('borrow_type');
   if (!start_date) missing.push('start_date');
@@ -106,7 +106,7 @@ exports.postBookings = async (req, res) => {
   // SQL INSERT
   const insertSql = `
         INSERT INTO borrow_requests (
-        borrower_id, classroom_id, borrow_type, start_date, end_date,
+        user_id, classroom_id, borrow_type, start_date, end_date,
         start_time, end_time, event_name, people_count, 
         teacher_name, reason, status, reject_reason,
         teacher_department, teacher_phone, teacher_email,
@@ -156,7 +156,7 @@ exports.postBookings = async (req, res) => {
     if (!borrower_email) borrower_email = '';
 
     const values = [
-      borrower_id,
+      user_id,
       classroom_id,
       borrow_type,
       start_date,
@@ -375,6 +375,30 @@ exports.taSignoff = async (req, res) => {
       'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?',
       [status, status === '退件' ? reject_reason : null, id]
     );
+
+    // 如果是核准，新增到 schedule 表
+    if (status === '核准') {
+      const insertScheduleSql = `
+        INSERT INTO schedule (
+          classroom_id, date, time_slot, booked_by, 
+          borrow_request_id, event_name, status
+        ) VALUES (?, ?, ?, ?, ?, ?, '已預約')
+      `;
+      // 時間格式必須為 HH:mm-HH:mm
+      // 去除秒數部分 (假設 DB 存的是 HH:mm:ss)
+      const fmtStart = request.start_time.substring(0, 5);
+      const fmtEnd = request.end_time.substring(0, 5);
+      const timeSlot = `${fmtStart}-${fmtEnd}`;
+
+      await connection.query(insertScheduleSql, [
+        request.classroom_id,
+        dayjs(request.start_date).format('YYYY-MM-DD'),
+        timeSlot,
+        request.user_id, // 假設 borrow_requests 有 user_id 欄位
+        id,
+        request.event_name
+      ]);
+    }
 
     await connection.commit();
 

@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/adminsController');
+const {
+  authenticateToken,
+  authorizeAdmin,
+} = require('../middleware/authMiddleware');
+
+// Apply authentication and admin authorization to all admin routes
+router.use(authenticateToken);
+router.use(authorizeAdmin);
 
 router.get(
   '/bookings',
@@ -10,7 +18,7 @@ router.get(
             schema: [
                 {
                     "request_id": 3,
-                    "borrower_id": 1,
+                    "user_id": 1,
                     "classroom_id": "R201",
                     "borrow_type": "多次借用",
                     "start_date": "2025-10-01T00:00:00.000Z",
@@ -33,7 +41,7 @@ router.get(
                 },
                 {
                     "request_id": 4,
-                    "borrower_id": 1,
+                    "user_id": 1,
                     "classroom_id": "H01",
                     "borrow_type": "單次借用",
                     "start_date": "2025-11-05T00:00:00.000Z",
