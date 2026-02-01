@@ -11,6 +11,21 @@ exports.getAllBookings = async (req, res) => {
   }
 };
 
+exports.getAllBlacklist = async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT b.*, u.name as user_name, u.email as user_email
+      FROM blacklist b
+      LEFT JOIN users u ON b.user_id = u.user_id
+      ORDER BY b.created_at DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('Query error:', err);
+    res.status(500).json({ error: '資料庫錯誤' });
+  }
+};
+
 function getDatesInRange(startDate, endDate) {
   const date = new Date(startDate);
   const end = new Date(endDate);
@@ -150,35 +165,6 @@ exports.updateBookings = async (req, res) => {
     res.status(500).json({ error: '資料庫錯誤' });
   } finally {
     connection.release();
-  }
-};
-
-exports.postAnnouncement = async (req, res) => {
-  const { title, content, expired_at } = req.body;
-
-  const missing = [];
-  if (!title) missing.push('title');
-  if (!content) missing.push('content');
-  if (!expired_at) missing.push('expired_at');
-
-  if (missing.length > 0) {
-    return res.status(400).json({
-      error: `缺少必要欄位: ${missing.join(', ')}`,
-    });
-  }
-
-  const sql = `
-        INSERT INTO announcements (title, content, expired_at)
-        VALUES
-        (?,?,?)`;
-  const values = [title, content, expired_at];
-
-  try {
-    const [result] = await pool.query(sql, values);
-    res.json({ message: '申請已建立', request_id: result.insertId });
-  } catch (err) {
-    console.error('新增資料失敗:', err);
-    res.status(500).json({ error: '資料庫錯誤' });
   }
 };
 

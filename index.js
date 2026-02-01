@@ -55,12 +55,6 @@ app.use(
 );
 
 app.use(
-  '/announcements',
-  // #swagger.tags = ['announcement']
-  require('./routes/announcements')
-);
-
-app.use(
   '/bookings',
   // #swagger.tags = ['bookings']
   require('./routes/borrowRequests')
