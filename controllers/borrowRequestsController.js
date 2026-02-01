@@ -1,6 +1,8 @@
 const pool = require('../db');
 const dayjs = require('dayjs');
 const emailService = require('../services/emailService');
+const { USER_ROLES } = require('../utils/constants');
+const crypto = require('crypto');
 
 exports.getBookings = async (req, res) => {
   try {
@@ -18,7 +20,16 @@ exports.getBookings = async (req, res) => {
 exports.getBookingsById = async (req, res) => {
   try {
     const value = req.params.id;
-    const sql = 'SELECT * FROM borrow_requests WHERE request_id = ?';
+    // Try to find by public_id first (if string UUID), fallback to request_id (int) if needed?
+    // Actually, plan says: "Update to querying by public_id".
+    // Since existing frontend sends ID, we need to support both or switch.
+    // Let's support public_id. If it's an integer, MySQL might cast string to int 0, which is bad.
+    // Better to check format or assume public_id for new flow.
+    // User requested: "expose a separate random/public ID externally". auto-increment is internal.
+    // So getBookingsById (public route mainly?) should use PK?
+    // Wait, getBookingsById is public route `/:id`. Yes.
+    // So we use public_id here.
+    const sql = 'SELECT * FROM borrow_requests WHERE public_id = ?';
     const [rows] = await pool.query(sql, [value]);
     res.json(rows);
   } catch (err) {
@@ -106,13 +117,13 @@ exports.postBookings = async (req, res) => {
   // SQL INSERT
   const insertSql = `
         INSERT INTO borrow_requests (
-        user_id, classroom_id, borrow_type, start_date, end_date,
+        public_id, user_id, classroom_id, borrow_type, start_date, end_date,
         start_time, end_time, event_name, people_count, 
         teacher_name, reason, status, reject_reason,
         teacher_department, teacher_phone, teacher_email,
         borrower_department, borrower_phone, borrower_email
         ) VALUES (
-        ? , ? , ? , ? , ? , 
+        ?, ? , ? , ? , ? , ? , 
         ? , ? , ? , ? ,
         ? , ? , ? , ? ,
         ? , ? , ? ,
@@ -155,7 +166,10 @@ exports.postBookings = async (req, res) => {
     if (!borrower_phone) borrower_phone = '';
     if (!borrower_email) borrower_email = '';
 
+    const publicId = crypto.randomUUID();
+
     const values = [
+      publicId,
       user_id,
       classroom_id,
       borrow_type,
@@ -187,6 +201,7 @@ exports.postBookings = async (req, res) => {
         await emailService.sendTeacherSignoffMail({
           teacherEmail: teacher_email,
           borrowId: result.insertId,
+          publicId: publicId, // Pass public ID
           userEmail: borrower_email,
           activityName: event_name,
           classroom: classroom_id,
@@ -200,7 +215,11 @@ exports.postBookings = async (req, res) => {
       }
     }
 
-    res.json({ message: '申請已建立', request_id: result.insertId });
+    res.json({
+      message: '申請已建立',
+      request_id: result.insertId,
+      public_id: publicId,
+    });
   } catch (err) {
     await connection.rollback();
     console.error('新增資料失敗:', err);
@@ -246,11 +265,33 @@ exports.putReturnBookings = async (req, res) => {
 exports.teacherSignoff = async (req, res) => {
   const { id, status, comment } = req.body;
 
+  // Role Validation: Check if user is TEACHER, ADMIN or OFFICER
+  const userRole = req.user.role;
+  if (
+    ![USER_ROLES.TEACHER, USER_ROLES.ADMIN, USER_ROLES.OFFICER].includes(
+      userRole
+    )
+  ) {
+    return res
+      .status(403)
+      .json({ success: false, message: '權限不足：僅限教師或管理員簽核' });
+  }
+
   try {
+    // 查詢申請單資料 (用於寄信與確認存在)
+    const [rows] = await pool.query(
+      'SELECT * FROM borrow_requests WHERE public_id = ?',
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: '找不到申請單' });
+    }
+    const request = rows[0];
+
     const newStatus = status === '核准' ? '教師核准' : '退件';
 
     await pool.execute(
-      'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?',
+      'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE public_id = ?',
       [newStatus, comment || '', id]
     );
 
@@ -261,7 +302,8 @@ exports.teacherSignoff = async (req, res) => {
       try {
         await emailService.sendTASignoffMail({
           taEmail,
-          borrowId: id,
+          borrowId: request.request_id, // 使用內部 Integer ID 顯示
+          publicId: request.public_id, // 使用 UUID 於連結
           baseUrl,
         });
       } catch (emailError) {
@@ -270,23 +312,16 @@ exports.teacherSignoff = async (req, res) => {
     } else if (newStatus === '退件') {
       // 駁回通知申請人
       try {
-        const [rows] = await pool.query(
-          'SELECT * FROM borrow_requests WHERE request_id = ?',
-          [id]
-        );
-        if (rows.length > 0) {
-          const reqData = rows[0];
-          await emailService.sendRejectionNotification({
-            userEmail: reqData.borrower_email,
-            borrowId: id,
-            eventName: reqData.event_name,
-            classroom: reqData.classroom_id,
-            startDate: reqData.start_date,
-            startTime: reqData.start_time,
-            endTime: reqData.end_time,
-            reason: comment,
-          });
-        }
+        await emailService.sendRejectionNotification({
+          userEmail: request.borrower_email,
+          borrowId: request.request_id,
+          eventName: request.event_name,
+          classroom: request.classroom_id,
+          startDate: request.start_date,
+          startTime: request.start_time,
+          endTime: request.end_time,
+          reason: comment,
+        });
       } catch (emailError) {
         console.error('駁回通知信寄送失敗:', emailError);
       }
@@ -301,6 +336,14 @@ exports.teacherSignoff = async (req, res) => {
 exports.taSignoff = async (req, res) => {
   const { id, status, reject_reason } = req.body;
 
+  // Role Validation: Check if user is ADMIN or OFFICER
+  const userRole = req.user.role;
+  if (![USER_ROLES.ADMIN, USER_ROLES.OFFICER].includes(userRole)) {
+    return res
+      .status(403)
+      .json({ success: false, message: '權限不足：僅限管理員或系辦人員簽核' });
+  }
+
   // 取得資料庫連線以啟動交易 (確保核准過程的原子性)
   const connection = await pool.getConnection();
 
@@ -308,7 +351,7 @@ exports.taSignoff = async (req, res) => {
     await connection.beginTransaction();
 
     const [rows] = await connection.query(
-      'SELECT * FROM borrow_requests WHERE request_id = ? FOR UPDATE',
+      'SELECT * FROM borrow_requests WHERE public_id = ? FOR UPDATE',
       [id]
     );
 
@@ -357,7 +400,7 @@ exports.taSignoff = async (req, res) => {
       const [conflictRequests] = await connection.query(checkRequestsSql, [
         request.classroom_id,
         request.start_date,
-        id,
+        request.request_id, // Use internal ID for exclusion check
         request.end_time,
         request.start_time,
       ]);
@@ -372,7 +415,7 @@ exports.taSignoff = async (req, res) => {
     }
 
     await connection.query(
-      'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?',
+      'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE public_id = ?',
       [status, status === '退件' ? reject_reason : null, id]
     );
 
@@ -395,8 +438,8 @@ exports.taSignoff = async (req, res) => {
         dayjs(request.start_date).format('YYYY-MM-DD'),
         timeSlot,
         request.user_id, // 假設 borrow_requests 有 user_id 欄位
-        id,
-        request.event_name
+        request.request_id, // Use Internal ID for Foreign Key
+        request.event_name,
       ]);
     }
 
@@ -406,7 +449,7 @@ exports.taSignoff = async (req, res) => {
       try {
         await emailService.sendApprovalNotification({
           userEmail: request.borrower_email,
-          borrowId: id,
+          borrowId: request.request_id, // Use Internal ID for display
           eventName: request.event_name,
           classroom: request.classroom_id,
           startDate: request.start_date,
@@ -420,7 +463,7 @@ exports.taSignoff = async (req, res) => {
       try {
         await emailService.sendRejectionNotification({
           userEmail: request.borrower_email,
-          borrowId: id,
+          borrowId: request.request_id, // Use Internal ID for display
           eventName: request.event_name,
           classroom: request.classroom_id,
           startDate: request.start_date,

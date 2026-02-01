@@ -29,7 +29,10 @@ const sendTeacherSignoffMail = async ({
   startTime,
   endTime,
   baseUrl,
+  publicId,
 }) => {
+  // Use publicId if available, otherwise fallback to borrowId
+  const idToUse = publicId || borrowId;
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: teacherEmail,
@@ -39,17 +42,18 @@ const sendTeacherSignoffMail = async ({
         <p><strong>活動：</strong> ${activityName}</p>
         <p><strong>教室：</strong> ${classroom}</p>
         <p><strong>時間：</strong> ${date} ${startTime} - ${endTime}</p>
-        <a href="${baseUrl}/teacher-signoff?id=${borrowId}">前往簽核</a>
+        <a href="${baseUrl}/teacher-signoff?id=${idToUse}">前往簽核</a>
       `,
   });
 };
 
-const sendTASignoffMail = async ({ taEmail, borrowId, baseUrl }) => {
+const sendTASignoffMail = async ({ taEmail, borrowId, publicId, baseUrl }) => {
+  const idToUse = publicId || borrowId;
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: taEmail,
     subject: `【需助教覆核】申請單 #${borrowId}`,
-    html: `<p>老師已核准。</p><a href="${baseUrl}/ta-signoff?id=${borrowId}">前往助教簽核</a>`,
+    html: `<p>老師已核准。</p><a href="${baseUrl}/ta-signoff?id=${idToUse}">前往助教簽核</a>`,
   });
 };
 

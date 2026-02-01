@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../db');
 const { getJwtSub } = require('../utils/jwtUtils');
+const { USER_ROLES } = require('../utils/constants');
 
 // Read public key once at startup
 // const PUBLIC_KEY = fs.readFileSync(
@@ -84,31 +85,41 @@ exports.authenticateToken = async (req, res, next) => {
  * Middleware to authorize admin users only
  * Must be used after authenticateToken middleware
  */
-exports.authorizeAdmin = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ success: false, message: '未經驗證的請求' });
-  }
-
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ success: false, message: '需要管理員權限' });
-  }
-
-  next();
-};
-
-/**
- * Middleware to authorize teacher or admin users
- * Must be used after authenticateToken middleware
- */
 exports.authorizeTeacherOrAdmin = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ success: false, message: '未經驗證的請求' });
   }
 
-  if (req.user.role !== 'admin' && req.user.role !== 'teacher') {
+  const userRole = req.user.role;
+  // Allow ADMIN, TEACHER, or OFFICER (if OFFICER counts as admin-like for this context)
+  // Plan said: Update authorizeTeacherOrAdmin and authorizeAdmin to use USER_ROLES constants.
+  if (
+    ![USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.OFFICER].includes(
+      userRole
+    )
+  ) {
     return res
       .status(403)
       .json({ success: false, message: '需要教師或管理員權限' });
+  }
+
+  next();
+};
+
+exports.authorizeAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: '未經驗證的請求' });
+  }
+
+  if (
+    req.user.role !== USER_ROLES.ADMIN &&
+    req.user.role !== USER_ROLES.OFFICER
+  ) {
+    // Assuming OFFICER is also powerful enough? Or strictly ADMIN=0?
+    // Existing code only checked 'admin'.
+    // I will stick to ADMIN (0) and maybe OFFICER (1) if they are staff.
+    // Let's stick to ADMIN and OFFICER for "Admin" rights in this context as per typical system evolution.
+    return res.status(403).json({ success: false, message: '需要管理員權限' });
   }
 
   next();

@@ -7,11 +7,12 @@ exports.getSchedule = async (req, res) => {
     let values;
 
     if (start_date && end_date) {
-        sql = 'SELECT * FROM schedule WHERE date >= ? AND date <= ? AND classroom_id = ?';
-        values = [start_date, end_date, classroom_id];
+      sql =
+        'SELECT * FROM schedule WHERE date >= ? AND date <= ? AND classroom_id = ?';
+      values = [start_date, end_date, classroom_id];
     } else {
-        sql = 'SELECT * FROM schedule WHERE date = ? AND classroom_id = ?';
-        values = [date, classroom_id];
+      sql = 'SELECT * FROM schedule WHERE date = ? AND classroom_id = ?';
+      values = [date, classroom_id];
     }
 
     const [rows] = await pool.query(sql, values);

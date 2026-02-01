@@ -3,14 +3,13 @@ const router = express.Router();
 const controller = require('../controllers/borrowRequestsController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
-
 console.log('--- borrowRequests router loaded ---');
 
 // Public routes (Teacher/TA signoff links do not have auth token)
 // Public routes (Teacher/TA signoff links do not have auth token)
 router.get(
-    '/:id',
-    /*
+  '/:id',
+  /*
           /* 
           #swagger.description = '取得特定申請'
           #swagger.parameters['id'] = {
@@ -46,19 +45,22 @@ router.get(
               }
           } 
       */
-    (req, res, next) => { console.log('Hit public route GET /:id'); next(); },
-    controller.getBookingsById
+  (req, res, next) => {
+    console.log('Hit public route GET /:id');
+    next();
+  },
+  controller.getBookingsById
 );
-
-router.post('/signoff', controller.teacherSignoff);
-router.post('/ta-signoff', controller.taSignoff);
 
 // All borrow request routes require authentication
 router.use(authenticateToken);
 
+router.post('/signoff', controller.teacherSignoff);
+router.post('/ta-signoff', controller.taSignoff);
+
 router.get(
-    '/',
-    /* 
+  '/',
+  /* 
           #swagger.description = '查看自己的申請'
           #swagger.parameters['id'] = {
               in: 'query',
@@ -118,12 +120,12 @@ router.get(
               ]
           } 
       */
-    controller.getBookings
+  controller.getBookings
 );
 
 router.post(
-    '/',
-    /*
+  '/',
+  /*
           #swagger.description = '新增申請'
           #swagger.parameters['body'] = {
               in: 'body',
@@ -157,11 +159,11 @@ router.post(
               }
           } 
       */
-    controller.postBookings
+  controller.postBookings
 );
 router.put(
-    '/:id/cancel',
-    /*
+  '/:id/cancel',
+  /*
           #swagger.description = '取消申請'
           #swagger.parameters['id'] = {
               in: 'path',
@@ -177,11 +179,11 @@ router.put(
               }
           } 
       */
-    controller.putCancelBookings
+  controller.putCancelBookings
 );
 router.put(
-    '/:id/return',
-    /*
+  '/:id/return',
+  /*
           #swagger.description = '歸還申請'
           #swagger.parameters['id'] = {
               in: 'path',
@@ -197,8 +199,7 @@ router.put(
               }
           } 
       */
-    controller.putReturnBookings
+  controller.putReturnBookings
 );
-
 
 module.exports = router;

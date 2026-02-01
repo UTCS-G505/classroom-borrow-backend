@@ -32,7 +32,7 @@ async function syncUserToLocalDB(uid, accessToken) {
     const role = profile.role || 6;
     const department = role <= 4 ? '資科系' : null;
     const phone_number = profile.phone_number || null;
-    console.log("user profile: ", profile);
+    console.log('user profile: ', profile);
 
     // Check if user exists in local DB by user_id (SSO UID)
     const [existingUsers] = await db.query(
@@ -195,8 +195,6 @@ exports.refreshToken = async (req, res) => {
       // 檢查是否有新的 Cookie (例如 Refresh Token Rotation)
       let newCookies = response.headers['set-cookie'];
       if (newCookies) {
-        console.log('SSO 回傳新的 Cookies:', newCookies);
-
         // 如果是單字串轉為陣列
         if (!Array.isArray(newCookies)) {
           newCookies = [newCookies];
@@ -210,7 +208,6 @@ exports.refreshToken = async (req, res) => {
             .replace(/SameSite=[^;]+;?/gi, 'SameSite=Lax;'); // 強制設定 SameSite
         });
 
-        console.log('修改後的 Cookies:', modifiedCookies);
         res.set('Set-Cookie', modifiedCookies);
       }
 
@@ -293,7 +290,6 @@ exports.getProfile = async (req, res) => {
   const accessToken = req.headers['authorization']
     ? req.headers['authorization'].split(' ')[1]
     : null;
-  console.log(`取得使用者資料請求，UID: ${uid}`);
 
   if (!accessToken) {
     return res.status(401).json({

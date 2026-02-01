@@ -29,6 +29,7 @@ CREATE TABLE classrooms (
 -- borrow_requests（借用申請）
 CREATE TABLE borrow_requests (
   request_id INT AUTO_INCREMENT PRIMARY KEY,
+  public_id VARCHAR(36) UNIQUE DEFAULT NULL,
   user_id VARCHAR(36) NOT NULL,
   classroom_id VARCHAR(10) NOT NULL,
   borrow_type ENUM('單次借用','多次借用') NOT NULL,
