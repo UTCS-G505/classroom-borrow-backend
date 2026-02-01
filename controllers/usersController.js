@@ -147,6 +147,9 @@ exports.login = async (req, res) => {
     // 處理 SSO 回傳的錯誤狀態 (例如 401)
     if (error.response) {
       console.error('SSO 狀態碼:', error.response.status);
+      if (error.response.data) {
+        console.error('SSO 詳細錯誤:', JSON.stringify(error.response.data));
+      }
 
       if (error.response.status === 401) {
         return res.status(401).json({
@@ -188,6 +191,29 @@ exports.refreshToken = async (req, res) => {
         return;
       }
 
+      // TODO
+      // 檢查是否有新的 Cookie (例如 Refresh Token Rotation)
+      let newCookies = response.headers['set-cookie'];
+      if (newCookies) {
+        console.log('SSO 回傳新的 Cookies:', newCookies);
+
+        // 如果是單字串轉為陣列
+        if (!Array.isArray(newCookies)) {
+          newCookies = [newCookies];
+        }
+
+        // 修改 Cookie 屬性以適應本地開發環境
+        const modifiedCookies = newCookies.map((cookie) => {
+          return cookie
+            .replace(/Domain=[^;]+;?/gi, '') // 移除 Domain
+            .replace(/Secure;?/gi, '') // 移除 Secure (如果本地不是 https)
+            .replace(/SameSite=[^;]+;?/gi, 'SameSite=Lax;'); // 強制設定 SameSite
+        });
+
+        console.log('修改後的 Cookies:', modifiedCookies);
+        res.set('Set-Cookie', modifiedCookies);
+      }
+
       res.json({
         success: true,
         message: 'SSO refresh token 成功',
@@ -207,6 +233,9 @@ exports.refreshToken = async (req, res) => {
     // 處理 SSO 回傳的錯誤狀態 (例如 401)
     if (error.response) {
       console.error('SSO 狀態碼:', error.response.status);
+      if (error.response.data) {
+        console.error('SSO 詳細錯誤:', JSON.stringify(error.response.data));
+      }
 
       if (error.response.status === 401) {
         return res.status(401).json({

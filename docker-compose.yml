@@ -4,7 +4,7 @@ services:
     container_name: classroom-db
     restart: unless-stopped
     ports:
-      - '3307:3306'
+      - '3306:3306'
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -41,7 +41,8 @@ services:
     container_name: classroom-backend
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - '3000:3000'
     environment:
@@ -50,3 +51,7 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD}
       DB_NAME: ${MYSQL_DATABASE}
       DB_PORT: 3306
+      # 👇 這裡就是我們剛剛要補上的環境變數
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASS: ${MAIL_PASS}
+      TA_EMAIL: ${TA_EMAIL}

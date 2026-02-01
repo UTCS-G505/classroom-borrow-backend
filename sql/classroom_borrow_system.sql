@@ -40,7 +40,7 @@ CREATE TABLE borrow_requests (
   people_count INT,
   teacher_name VARCHAR(50),
   reason TEXT,
-  status ENUM('審核中','核准','退件','已歸還','已取消') DEFAULT '審核中',
+  status ENUM('審核中','教師核准','核准','退件','已歸還','已取消') DEFAULT '審核中',
   reject_reason TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   -- 以下為申請當下快照（避免使用者資料改變導致紀錄不同）
@@ -102,7 +102,6 @@ CREATE INDEX idx_schedule_date_classroom ON schedule(classroom_id, date);
 -- 檢查建立結果
 SHOW TABLES;
 
--- classrooms（教室）
 INSERT INTO classrooms (classroom_id, name, type, capacity, description, image_url)
 VALUES
   ('G312','G312 會議室','會議室',20,NULL,NULL),
@@ -136,6 +135,7 @@ VALUES
 -- VALUES
 -- ('G509','2025-11-20','13:00-16:00',1,1,'程式設計期末報告','已預約');
 
+
 -- 假資料：announcements（公告）
 INSERT INTO announcements (title, content, expired_at)
 VALUES
@@ -146,7 +146,7 @@ VALUES
 -- 假資料：blacklist（違規名單）
 INSERT INTO blacklist (user_id, reason, expired_at)
 VALUES
-  (1, '使用後未歸還教室鑰匙，且未按規定清理場地', '2026-05-01 00:00:00');
+  ('u001', '使用後未歸還教室鑰匙，且未按規定清理場地', '2026-05-01 00:00:00');
 
 -- 檢查資料（簡單 SELECT 範例）
 SELECT user_id,name,email,role FROM users;
