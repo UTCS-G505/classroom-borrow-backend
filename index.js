@@ -1,10 +1,10 @@
 require('dotenv').config();
-const express = require('express');
 const axios = require('axios'); // 引入 axios 用於 SSO 請求
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const db = require('./db'); // 保持資料庫連線，之後抓個資或紀錄會用到
+const express = require('express');
 
 const app = express();
 // 配合您提供的程式碼，預設使用 8080，如果 .env 有設定則優先使用 .env
