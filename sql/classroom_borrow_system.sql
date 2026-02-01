@@ -6,7 +6,7 @@ USE classroom_borrow_system;
 
 -- users（使用者）
 CREATE TABLE users (
-  user_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(36) PRIMARY KEY,
   name VARCHAR(50) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   phone_number VARCHAR(20),
@@ -29,7 +29,7 @@ CREATE TABLE classrooms (
 -- borrow_requests（借用申請）
 CREATE TABLE borrow_requests (
   request_id INT AUTO_INCREMENT PRIMARY KEY,
-  borrower_id INT NOT NULL,
+  borrower_id VARCHAR(36) NOT NULL,
   classroom_id VARCHAR(10) NOT NULL,
   borrow_type ENUM('單次借用','多次借用') NOT NULL,
   start_date DATE NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE announcements (
 -- blacklist（違規名單）
 CREATE TABLE blacklist (
   blacklist_id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
   reason TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   expired_at DATETIME NULL,
@@ -82,7 +82,7 @@ CREATE TABLE schedule (
   classroom_id VARCHAR(10) NOT NULL,
   date DATE NOT NULL,
   time_slot VARCHAR(20) NOT NULL,
-  booked_by INT,
+  booked_by VARCHAR(36),
   borrow_request_id INT,
   event_name VARCHAR(100),
   status ENUM('已預約','已取消') DEFAULT '已預約',

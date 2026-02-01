@@ -32,34 +32,35 @@ async function syncUserToLocalDB(uid, accessToken) {
     const role = profile.role || 6;
     const department = role <= 4 ? '資科系' : null;
     const phone_number = profile.phone_number || null;
+    console.log("user profile: ", profile);
 
-    // Check if user exists in local DB
+    // Check if user exists in local DB by user_id (SSO UID)
     const [existingUsers] = await db.query(
-      'SELECT user_id, role FROM users WHERE email = ?',
-      [email]
+      'SELECT user_id, role FROM users WHERE user_id = ?',
+      [uid]
     );
 
     if (existingUsers.length > 0) {
       // Update existing user (preserve role)
       await db.query(
-        'UPDATE users SET name = ?, department = ? WHERE email = ?',
-        [name, department, email]
+        'UPDATE users SET name = ?, department = ?, email = ? WHERE user_id = ?',
+        [name, department, email, uid]
       );
       return {
-        user_id: existingUsers[0].user_id,
+        user_id: uid,
         email,
         name,
         role: existingUsers[0].role,
         department,
       };
     } else {
-      const [result] = await db.query(
-        'INSERT INTO users (name, email, phone_number, role, department) VALUES (?, ?, ?, ?, ?)',
-        [name, email, phone_number, role, department]
+      await db.query(
+        'INSERT INTO users (user_id, name, email, phone_number, role, department) VALUES (?, ?, ?, ?, ?, ?)',
+        [uid, name, email, phone_number, role, department]
       );
-      console.log(`Created new user: ${email} with ID: ${result.insertId}`);
+      console.log(`Created new user: ${email} with ID: ${uid}`);
       return {
-        user_id: result.insertId,
+        user_id: uid,
         email,
         name,
         role: role,
@@ -102,7 +103,7 @@ exports.login = async (req, res) => {
       const refreshTokenCookie = cookies.find((cookie) =>
         cookie.startsWith('refresh_token=')
       );
-      
+
       if (!accessToken || !refreshTokenCookie) {
         res.status(500).json({
           success: false,
