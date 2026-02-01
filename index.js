@@ -95,5 +95,4 @@ app.get('/ping', (req, res) => {
 app.listen(port, () => {
   console.log(`\n=== 伺服器已啟動 ===`);
   console.log(`後端運行於: http://localhost:${port}`);
-  // console.log(`登入測試頁面: http://localhost:${port}/test-login \n`);
 });

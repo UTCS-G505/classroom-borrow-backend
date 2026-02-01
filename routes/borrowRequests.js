@@ -3,10 +3,6 @@ const router = express.Router();
 const controller = require('../controllers/borrowRequestsController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
-console.log('--- borrowRequests router loaded ---');
-
-// Public routes (Teacher/TA signoff links do not have auth token)
-// Public routes (Teacher/TA signoff links do not have auth token)
 router.get(
   '/:id',
   /*
@@ -46,7 +42,6 @@ router.get(
           } 
       */
   (req, res, next) => {
-    console.log('Hit public route GET /:id');
     next();
   },
   controller.getBookingsById

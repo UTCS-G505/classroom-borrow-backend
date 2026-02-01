@@ -32,7 +32,6 @@ async function syncUserToLocalDB(uid, accessToken) {
     const role = profile.role || 6;
     const department = role <= 4 ? '資科系' : null;
     const phone_number = profile.phone_number || null;
-    console.log('user profile: ', profile);
 
     // Check if user exists in local DB by user_id (SSO UID)
     const [existingUsers] = await db.query(
@@ -58,7 +57,6 @@ async function syncUserToLocalDB(uid, accessToken) {
         'INSERT INTO users (user_id, name, email, phone_number, role, department) VALUES (?, ?, ?, ?, ?, ?)',
         [uid, name, email, phone_number, role, department]
       );
-      console.log(`Created new user: ${email} with ID: ${uid}`);
       return {
         user_id: uid,
         email,
@@ -76,7 +74,6 @@ async function syncUserToLocalDB(uid, accessToken) {
 // 登入 API (整合 SSO + JWT)
 exports.login = async (req, res) => {
   const { account, password } = req.body;
-  console.log(`收到登入請求: ${account}`);
 
   try {
     // 發送請求給學校 SSO
