@@ -8,4 +8,16 @@ const USER_ROLES = {
   GUEST: 6,
 };
 
-module.exports = { USER_ROLES };
+const VALID_CLASSROOMS = [
+  'G312',
+  'G313',
+  'G314',
+  'G315',
+  'G316',
+  'G501',
+  'G508',
+  'G509',
+  'G516',
+];
+
+module.exports = { USER_ROLES, VALID_CLASSROOMS };

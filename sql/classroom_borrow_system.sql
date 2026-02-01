@@ -16,15 +16,7 @@ CREATE TABLE users (
 );
 
 -- classrooms（教室）
-CREATE TABLE classrooms (
-  classroom_id VARCHAR(10) PRIMARY KEY,
-  name VARCHAR(50) NOT NULL,
-  type VARCHAR(30),
-  capacity INT,
-  description TEXT,
-  image_url VARCHAR(255),
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+-- TABLE REMOVED: Validation moved to frontend/static.
 
 -- borrow_requests（借用申請）
 CREATE TABLE borrow_requests (
@@ -52,8 +44,6 @@ CREATE TABLE borrow_requests (
   borrower_phone VARCHAR(20),
   borrower_email VARCHAR(100),
   FOREIGN KEY (user_id) REFERENCES users(user_id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  FOREIGN KEY (classroom_id) REFERENCES classrooms(classroom_id)
     ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -82,18 +72,6 @@ CREATE INDEX idx_borrow_status ON borrow_requests(status);
 
 -- 檢查建立結果
 SHOW TABLES;
-
-INSERT INTO classrooms (classroom_id, name, type, capacity, description, image_url)
-VALUES
-  ('G312','G312 會議室','會議室',20,NULL,NULL),
-  ('G313','G313 普通教室','普通教室',40,NULL,NULL),
-  ('G314','G314 普通教室','普通教室',40,NULL,NULL),
-  ('G315','G315 電腦教室','電腦教室',30,NULL,NULL),
-  ('G316','G316 電腦教室','電腦教室',30,NULL,NULL),
-  ('G501','G501 會議室','會議室',20,NULL,NULL),
-  ('G508','G508 系圖書室','系圖書室',15,NULL,NULL),
-  ('G509','G509 IOS教室','電腦教室',30,NULL,NULL),
-  ('G516','G516 電腦教室','電腦教室',30,NULL,NULL);
 
 SELECT request_id,user_id,classroom_id,borrow_type,start_date,start_time,end_time,status FROM borrow_requests;
 SELECT * FROM announcements;

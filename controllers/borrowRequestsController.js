@@ -1,7 +1,7 @@
 const pool = require('../db');
 const dayjs = require('dayjs');
 const emailService = require('../services/emailService');
-const { USER_ROLES } = require('../utils/constants');
+const { USER_ROLES, VALID_CLASSROOMS } = require('../utils/constants');
 const crypto = require('crypto');
 
 exports.getBookings = async (req, res) => {
@@ -62,6 +62,11 @@ exports.postBookings = async (req, res) => {
     return res.status(400).json({
       error: `缺少必要欄位: ${missing.join(', ')}`,
     });
+  }
+
+  // Validate classroom_id
+  if (!VALID_CLASSROOMS.includes(classroom_id)) {
+    return res.status(400).json({ error: '無效的教室代號' });
   }
 
   if (end_time && end_time <= start_time) {

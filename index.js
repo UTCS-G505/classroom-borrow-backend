@@ -66,11 +66,11 @@ app.use(
   require('./routes/borrowRequests')
 );
 
-app.use(
-  '/classrooms',
-  // #swagger.tags = ['classrooms']
-  require('./routes/classrooms')
-);
+// app.use(
+//   '/classrooms',
+//   // #swagger.tags = ['classrooms']
+//   require('./routes/classrooms')
+// );
 
 // Auth routes (登入、Token 相關)
 app.use(
