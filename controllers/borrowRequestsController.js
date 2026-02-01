@@ -376,6 +376,30 @@ exports.taSignoff = async (req, res) => {
       [status, status === '退件' ? reject_reason : null, id]
     );
 
+    // 如果是核准，新增到 schedule 表
+    if (status === '核准') {
+      const insertScheduleSql = `
+        INSERT INTO schedule (
+          classroom_id, date, time_slot, booked_by, 
+          borrow_request_id, event_name, status
+        ) VALUES (?, ?, ?, ?, ?, ?, '已預約')
+      `;
+      // 時間格式必須為 HH:mm-HH:mm
+      // 去除秒數部分 (假設 DB 存的是 HH:mm:ss)
+      const fmtStart = request.start_time.substring(0, 5);
+      const fmtEnd = request.end_time.substring(0, 5);
+      const timeSlot = `${fmtStart}-${fmtEnd}`;
+
+      await connection.query(insertScheduleSql, [
+        request.classroom_id,
+        dayjs(request.start_date).format('YYYY-MM-DD'),
+        timeSlot,
+        request.user_id, // 假設 borrow_requests 有 user_id 欄位
+        id,
+        request.event_name
+      ]);
+    }
+
     await connection.commit();
 
     if (status === '核准') {
