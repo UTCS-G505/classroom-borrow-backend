@@ -3,6 +3,56 @@ const router = express.Router();
 const controller = require('../controllers/borrowRequestsController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
+
+console.log('--- borrowRequests router loaded ---');
+
+// Public routes (Teacher/TA signoff links do not have auth token)
+// Public routes (Teacher/TA signoff links do not have auth token)
+router.get(
+    '/:id',
+    /*
+          /* 
+          #swagger.description = '取得特定申請'
+          #swagger.parameters['id'] = {
+              in: 'path',
+              description: '申請編號',
+              required: true,
+              schema: 7
+          }
+          #swagger.responses[200] = { 
+              schema: 	
+              {
+                  "request_id": 7,
+                  "borrower_id": 4,
+                  "classroom_id": "C102",
+                  "borrow_type": "多次借用",
+                  "start_date": "2025-11-05T00:00:00.000Z",
+                  "end_date": null,
+                  "start_time": "13:00:00",
+                  "end_time": "15:00:00",
+                  "event_name": "社團活動",
+                  "people_count": 25,
+                  "teacher_name": "王老師",
+                  "reason": "舉辦迎新活動",
+                  "status": "審核中",
+                  "reject_reason": null,
+                  "created_at": "2025-11-30T06:08:56.000Z",
+                  "teacher_department": null,
+                  "teacher_phone": null,
+                  "teacher_email": null,
+                  "borrower_department": null,
+                  "borrower_phone": null,
+                  "borrower_email": null
+              }
+          } 
+      */
+    (req, res, next) => { console.log('Hit public route GET /:id'); next(); },
+    controller.getBookingsById
+);
+
+router.post('/signoff', controller.teacherSignoff);
+router.post('/ta-signoff', controller.taSignoff);
+
 // All borrow request routes require authentication
 router.use(authenticateToken);
 
@@ -70,46 +120,7 @@ router.get(
       */
     controller.getBookings
 );
-router.get(
-    '/:id',
-    /*
-          /* 
-          #swagger.description = '取得特定申請'
-          #swagger.parameters['id'] = {
-              in: 'path',
-              description: '申請編號',
-              required: true,
-              schema: 7
-          }
-          #swagger.responses[200] = { 
-              schema: 	
-              {
-                  "request_id": 7,
-                  "borrower_id": 4,
-                  "classroom_id": "C102",
-                  "borrow_type": "多次借用",
-                  "start_date": "2025-11-05T00:00:00.000Z",
-                  "end_date": null,
-                  "start_time": "13:00:00",
-                  "end_time": "15:00:00",
-                  "event_name": "社團活動",
-                  "people_count": 25,
-                  "teacher_name": "王老師",
-                  "reason": "舉辦迎新活動",
-                  "status": "審核中",
-                  "reject_reason": null,
-                  "created_at": "2025-11-30T06:08:56.000Z",
-                  "teacher_department": null,
-                  "teacher_phone": null,
-                  "teacher_email": null,
-                  "borrower_department": null,
-                  "borrower_phone": null,
-                  "borrower_email": null
-              }
-          } 
-      */
-    controller.getBookingsById
-);
+
 router.post(
     '/',
     /*
@@ -188,7 +199,6 @@ router.put(
       */
     controller.putReturnBookings
 );
-router.post('/signoff', controller.teacherSignoff);
-router.post('/ta-signoff', controller.taSignoff);
+
 
 module.exports = router;
