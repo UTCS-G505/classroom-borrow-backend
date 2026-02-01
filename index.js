@@ -72,13 +72,6 @@ app.use(
   require('./routes/classrooms')
 );
 
-app.use(
-  '/test',
-  // #swagger.ignore = true
-  // #swagger.tags = ['測試用']
-  require('./routes/tests')
-);
-
 // Auth routes (登入、Token 相關)
 app.use(
   '/api',
