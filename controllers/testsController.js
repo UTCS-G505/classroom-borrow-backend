@@ -11,13 +11,7 @@ exports.test1 = async (req, res) => {
 };
 
 exports.test2 = async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM schedule');
-    res.json(rows);
-  } catch (err) {
-    console.error('Query error:', err);
-    res.status(500).json({ error: '資料庫錯誤' });
-  }
+  res.json({ message: 'Schedule table deprecated' });
 };
 
 exports.test3 = async (req, res) => {

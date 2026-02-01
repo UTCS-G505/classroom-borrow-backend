@@ -20,15 +20,6 @@ exports.getBookings = async (req, res) => {
 exports.getBookingsById = async (req, res) => {
   try {
     const value = req.params.id;
-    // Try to find by public_id first (if string UUID), fallback to request_id (int) if needed?
-    // Actually, plan says: "Update to querying by public_id".
-    // Since existing frontend sends ID, we need to support both or switch.
-    // Let's support public_id. If it's an integer, MySQL might cast string to int 0, which is bad.
-    // Better to check format or assume public_id for new flow.
-    // User requested: "expose a separate random/public ID externally". auto-increment is internal.
-    // So getBookingsById (public route mainly?) should use PK?
-    // Wait, getBookingsById is public route `/:id`. Yes.
-    // So we use public_id here.
     const sql = 'SELECT * FROM borrow_requests WHERE public_id = ?';
     const [rows] = await pool.query(sql, [value]);
     res.json(rows);
@@ -85,22 +76,9 @@ exports.postBookings = async (req, res) => {
   let sDate = dayjs(start_date).format('YYYY-MM-DD');
   let eDate = dayjs(!end_date ? start_date : end_date).format('YYYY-MM-DD');
 
-  // 2. SQL 邏輯：檢查 schedule (已預約行程) 重疊
-  const checkSql = `
-        SELECT *
-        FROM schedule
-        WHERE classroom_id = ?
-          AND date BETWEEN ? AND ?
-          AND SUBSTRING_INDEX(time_slot, '-', 1) < ?
-          AND SUBSTRING_INDEX(time_slot, '-', -1) > ?
-          AND status = '已預約'
-        FOR UPDATE
-    `;
-
-  const chkvalues = [classroom_id, sDate, eDate, end_time, start_time];
-
-  // 3. SQL 邏輯：檢查 borrow_requests (申請中案件) 重疊
+  // 2. SQL 邏輯：檢查 borrow_requests (申請中或已核准案件) 重疊
   // 檢查同一間教室、同一天，且狀態不是「退件/已取消/已歸還」的申請單
+  // 這些狀態包含：'審核中', '教師核准', '核准', '已預約'
   const checkRequestsSql = `
         SELECT request_id 
         FROM borrow_requests 
@@ -135,22 +113,11 @@ exports.postBookings = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // 檢查 schedule 時段衝突
-    const [rows] = await connection.query(checkSql, chkvalues);
-
-    if (rows.length > 0) {
-      console.log(
-        `時段衝突！輸入的 ${start_time}~${end_time} 與現有的 ${rows[0].time_slot} 重疊`
-      );
-      await connection.rollback();
-      return res.status(409).json({ error: '該時段已滿，與現有行程衝突' });
-    }
-
-    // 檢查 borrow_requests 申請單衝突 (避免同時送單)
+    // 檢查 borrow_requests 衝突 (包含已預約和申請中的)
     const [reqRows] = await connection.query(checkRequestsSql, reqValues);
 
     if (reqRows.length > 0) {
-      console.log(`時段衝突 (Pending Requests)！`);
+      console.log(`時段衝突！該時段已被預約或正在審核中`);
       await connection.rollback();
       return res.status(409).json({
         error: '該時段已被其他申請單預約或正在審核中，請選擇其他時間。',
@@ -363,36 +330,12 @@ exports.taSignoff = async (req, res) => {
 
     // 若助教要核准，需再次檢查是否有衝突 (防護機制 3)
     if (status === '核准') {
-      // 檢查 schedule 表
-      const checkScheduleSql = `
-          SELECT schedule_id FROM schedule 
-          WHERE classroom_id = ? 
-          AND date = ? 
-          AND SUBSTRING_INDEX(time_slot, '-', 1) < ?
-          AND SUBSTRING_INDEX(time_slot, '-', -1) > ?
-          AND status = '已預約'
-      `;
-      const [conflictSchedule] = await connection.query(checkScheduleSql, [
-        request.classroom_id,
-        dayjs(request.start_date).format('YYYY-MM-DD'),
-        request.end_time,
-        request.start_time,
-      ]);
-
-      if (conflictSchedule.length > 0) {
-        await connection.rollback();
-        return res.status(409).json({
-          success: false,
-          message: '衝突警告：該時段已被寫入行程表，無法重複核准。',
-        });
-      }
-
-      // 檢查 borrow_requests 表 (其他剛剛被核准的單子)
+      // 檢查 borrow_requests 表 (其他剛剛被核准的單子) by internal request_id exclusion
       const checkRequestsSql = `
           SELECT request_id FROM borrow_requests 
           WHERE classroom_id = ? 
           AND start_date = ? 
-          AND status = '核准' 
+          AND status IN ('核准', '已預約') 
           AND request_id != ? 
           AND start_time < ? 
           AND end_time > ?
@@ -418,30 +361,6 @@ exports.taSignoff = async (req, res) => {
       'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE public_id = ?',
       [status, status === '退件' ? reject_reason : null, id]
     );
-
-    // 如果是核准，新增到 schedule 表
-    if (status === '核准') {
-      const insertScheduleSql = `
-        INSERT INTO schedule (
-          classroom_id, date, time_slot, booked_by, 
-          borrow_request_id, event_name, status
-        ) VALUES (?, ?, ?, ?, ?, ?, '已預約')
-      `;
-      // 時間格式必須為 HH:mm-HH:mm
-      // 去除秒數部分 (假設 DB 存的是 HH:mm:ss)
-      const fmtStart = request.start_time.substring(0, 5);
-      const fmtEnd = request.end_time.substring(0, 5);
-      const timeSlot = `${fmtStart}-${fmtEnd}`;
-
-      await connection.query(insertScheduleSql, [
-        request.classroom_id,
-        dayjs(request.start_date).format('YYYY-MM-DD'),
-        timeSlot,
-        request.user_id, // 假設 borrow_requests 有 user_id 欄位
-        request.request_id, // Use Internal ID for Foreign Key
-        request.event_name,
-      ]);
-    }
 
     await connection.commit();
 
