@@ -3,6 +3,9 @@ const router = express.Router();
 const controller = require('../controllers/borrowRequestsController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
+// All borrow request routes require authentication
+router.use(authenticateToken);
+
 router.get(
   '/:id',
   /*
@@ -46,9 +49,6 @@ router.get(
   },
   controller.getBookingsById
 );
-
-// All borrow request routes require authentication
-router.use(authenticateToken);
 
 router.post('/signoff', controller.teacherSignoff);
 router.post('/ta-signoff', controller.taSignoff);

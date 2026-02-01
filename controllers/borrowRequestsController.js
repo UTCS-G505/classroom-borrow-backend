@@ -22,6 +22,23 @@ exports.getBookingsById = async (req, res) => {
     const value = req.params.id;
     const sql = 'SELECT * FROM borrow_requests WHERE public_id = ?';
     const [rows] = await pool.query(sql, [value]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: '找不到此申請單' });
+    }
+
+    const booking = rows[0];
+    const isOwner = req.user.user_id === booking.user_id;
+    const isPrivileged = [
+      USER_ROLES.ADMIN,
+      USER_ROLES.OFFICER,
+      USER_ROLES.TEACHER,
+    ].includes(req.user.role);
+
+    if (!isOwner && !isPrivileged) {
+      return res.status(403).json({ error: '您無權查看此申請單' });
+    }
+
     res.json(rows);
   } catch (err) {
     console.error('Query error:', err);
@@ -30,8 +47,9 @@ exports.getBookingsById = async (req, res) => {
 };
 
 exports.postBookings = async (req, res) => {
-  var {
-    user_id,
+  // Force user_id from authenticated user to prevent creating bookings for others
+  const user_id = req.user.user_id;
+  const {
     classroom_id,
     borrow_type,
     start_date,
@@ -51,7 +69,6 @@ exports.postBookings = async (req, res) => {
   } = req.body;
 
   const missing = [];
-  if (!user_id) missing.push('user_id');
   if (!classroom_id) missing.push('classroom_id');
   if (!borrow_type) missing.push('borrow_type');
   if (!start_date) missing.push('start_date');
@@ -202,16 +219,34 @@ exports.postBookings = async (req, res) => {
 };
 
 exports.putCancelBookings = async (req, res) => {
-  const sql = `
-    UPDATE borrow_requests
-    SET status = '已取消'
-    WHERE request_id = ?;`;
-
-  const value = req.params.id;
+  const bookingId = req.params.id;
 
   try {
-    await pool.query(sql, [value]);
-    res.json({ message: '已取消', request_id: value });
+    // Fetch the booking to verify ownership
+    const [rows] = await pool.query(
+      'SELECT user_id FROM borrow_requests WHERE request_id = ?',
+      [bookingId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: '找不到此申請單' });
+    }
+
+    const booking = rows[0];
+    const isOwner = req.user.user_id === booking.user_id;
+    const isAdmin = [USER_ROLES.ADMIN, USER_ROLES.OFFICER].includes(
+      req.user.role
+    );
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: '您無權取消此申請單' });
+    }
+
+    await pool.query(
+      `UPDATE borrow_requests SET status = '已取消' WHERE request_id = ?;`,
+      [bookingId]
+    );
+    res.json({ message: '已取消', request_id: bookingId });
   } catch (err) {
     console.error('變更資料失敗:', err);
     res.status(500).json({ error: '資料庫錯誤' });
@@ -219,17 +254,36 @@ exports.putCancelBookings = async (req, res) => {
 };
 
 exports.putReturnBookings = async (req, res) => {
-  const sql = `
-    UPDATE borrow_requests
-    SET status = '已歸還'
-    WHERE request_id = ?;`;
-
-  const value = req.params.id;
+  const bookingId = req.params.id;
 
   try {
-    await pool.query(sql, [value]);
-    res.json({ message: '已歸還', request_id: value });
+    // Fetch the booking to verify ownership
+    const [rows] = await pool.query(
+      'SELECT user_id FROM borrow_requests WHERE request_id = ?',
+      [bookingId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: '找不到此申請單' });
+    }
+
+    const booking = rows[0];
+    const isOwner = req.user.user_id === booking.user_id;
+    const isAdmin = [USER_ROLES.ADMIN, USER_ROLES.OFFICER].includes(
+      req.user.role
+    );
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: '您無權歸還此申請單' });
+    }
+
+    await pool.query(
+      `UPDATE borrow_requests SET status = '已歸還' WHERE request_id = ?;`,
+      [bookingId]
+    );
+    res.json({ message: '已歸還', request_id: bookingId });
   } catch (err) {
+    console.error('變更資料失敗:', err);
     res.status(500).json({ error: '資料庫錯誤' });
   }
 };
