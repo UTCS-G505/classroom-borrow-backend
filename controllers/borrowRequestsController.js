@@ -5,7 +5,7 @@ exports.getBookings = async (req, res) => {
   try {
     const id = req.query.id;
     const sql =
-      'SELECT * FROM borrow_requests WHERE borrower_id = ? ORDER BY created_at DESC';
+      'SELECT * FROM borrow_requests WHERE user_id = ? ORDER BY created_at DESC';
     const [rows] = await pool.query(sql, [id]);
     res.json(rows);
   } catch (err) {
@@ -28,7 +28,7 @@ exports.getBookingsById = async (req, res) => {
 
 exports.postBookings = async (req, res) => {
   var {
-    borrower_id,
+    user_id,
     classroom_id,
     borrow_type,
     start_date,
@@ -48,7 +48,7 @@ exports.postBookings = async (req, res) => {
   } = req.body;
 
   const missing = [];
-  if (!borrower_id) missing.push('borrower_id');
+  if (!user_id) missing.push('user_id');
   if (!classroom_id) missing.push('classroom_id');
   if (!borrow_type) missing.push('borrow_type');
   if (!start_date) missing.push('start_date');
@@ -89,7 +89,7 @@ exports.postBookings = async (req, res) => {
   // SQL INSERT
   const insertSql = `
         INSERT INTO borrow_requests (
-        borrower_id, classroom_id, borrow_type, start_date, end_date,
+        user_id, classroom_id, borrow_type, start_date, end_date,
         start_time, end_time, event_name, people_count, 
         teacher_name, reason, status, reject_reason,
         teacher_department, teacher_phone, teacher_email,
@@ -128,7 +128,7 @@ exports.postBookings = async (req, res) => {
     if (!borrower_email) borrower_email = '';
 
     const values = [
-      borrower_id,
+      user_id,
       classroom_id,
       borrow_type,
       start_date,

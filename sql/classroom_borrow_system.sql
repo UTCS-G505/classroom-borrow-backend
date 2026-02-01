@@ -29,7 +29,7 @@ CREATE TABLE classrooms (
 -- borrow_requests（借用申請）
 CREATE TABLE borrow_requests (
   request_id INT AUTO_INCREMENT PRIMARY KEY,
-  borrower_id VARCHAR(36) NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
   classroom_id VARCHAR(10) NOT NULL,
   borrow_type ENUM('單次借用','多次借用') NOT NULL,
   start_date DATE NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE borrow_requests (
   borrower_department VARCHAR(50),
   borrower_phone VARCHAR(20),
   borrower_email VARCHAR(100),
-  FOREIGN KEY (borrower_id) REFERENCES users(user_id)
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
     ON DELETE CASCADE ON UPDATE CASCADE,
   FOREIGN KEY (classroom_id) REFERENCES classrooms(classroom_id)
     ON DELETE CASCADE ON UPDATE CASCADE
@@ -151,7 +151,7 @@ VALUES
 -- 檢查資料（簡單 SELECT 範例）
 SELECT user_id,name,email,role FROM users;
 SELECT classroom_id,name,type,capacity FROM classrooms;
-SELECT request_id,borrower_id,classroom_id,borrow_type,start_date,start_time,end_time,status FROM borrow_requests;
+SELECT request_id,user_id,classroom_id,borrow_type,start_date,start_time,end_time,status FROM borrow_requests;
 SELECT * FROM schedule;
 SELECT * FROM announcements;
 SELECT * FROM blacklist;

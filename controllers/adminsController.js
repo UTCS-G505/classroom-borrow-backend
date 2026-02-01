@@ -143,7 +143,7 @@ exports.updateBookings = async (req, res) => {
         requestData.classroom_id,
         dateStr,
         timeSlotString,
-        requestData.borrower_id,
+        requestData.user_id,
         request_id,
         requestData.event_name,
         scheduleStatus,
