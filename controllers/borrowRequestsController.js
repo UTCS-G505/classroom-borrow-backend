@@ -81,6 +81,29 @@ exports.postBookings = async (req, res) => {
     });
   }
 
+  // Check if user is blacklisted
+  try {
+    const [blacklistRows] = await pool.query(
+      `SELECT blacklist_id, reason, expired_at 
+       FROM blacklist 
+       WHERE user_id = ? 
+       AND (expired_at IS NULL OR expired_at > NOW())`,
+      [user_id]
+    );
+
+    if (blacklistRows.length > 0) {
+      const entry = blacklistRows[0];
+      return res.status(403).json({
+        error: '您目前在黑名單中，無法進行借用申請',
+        reason: entry.reason,
+        expired_at: entry.expired_at,
+      });
+    }
+  } catch (err) {
+    console.error('Blacklist check error:', err);
+    return res.status(500).json({ error: '資料庫錯誤' });
+  }
+
   // Validate classroom_id
   if (!VALID_CLASSROOMS.includes(classroom_id)) {
     return res.status(400).json({ error: '無效的教室代號' });
