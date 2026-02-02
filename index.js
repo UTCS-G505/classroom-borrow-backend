@@ -80,6 +80,13 @@ app.use(
   require('./routes/users')
 );
 
+// Announcements routes
+app.use(
+  '/announcements',
+  // #swagger.tags = ['announcements']
+  require('./routes/announcements.routes')
+);
+
 app.get('/ping', (req, res) => {
   // #swagger.ignore = true
   console.log('Ping route hit');

@@ -27,7 +27,7 @@ async function syncUserToLocalDB(uid, accessToken) {
     }
 
     const profile = userData.data;
-    const email = profile.primary_email;
+    const email = profile.email;
     const name = profile.name || profile.username || email.split('@')[0];
     const role = profile.role || 6;
     const department = role <= 4 ? '資科系' : null;
@@ -283,38 +283,44 @@ exports.logout = async (req, res) => {
 };
 
 exports.getProfile = async (req, res) => {
-  const uid = req.query.uid;
-  const accessToken = req.headers['authorization']
-    ? req.headers['authorization'].split(' ')[1]
-    : null;
+  // authMiddleware.authenticateToken should have already populated req.user
+  const user = req.user;
 
-  if (!accessToken) {
+  if (!user || (!user.user_id && !user.uid)) {
     return res.status(401).json({
       success: false,
-      message: '未提供 access token',
+      message: '未驗證的使用者',
     });
   }
 
-  try {
-    const response = await ssoService.getUserProfileFromSSO(uid, accessToken);
-    const userData = response.data;
+  const userId = user.user_id || user.uid;
 
-    if (userData.code === 0) {
+  try {
+    // Fetch latest data from local DB
+    const [rows] = await db.query('SELECT * FROM users WHERE user_id = ?', [
+      userId,
+    ]);
+
+    if (rows.length > 0) {
       res.json({
         success: true,
-        data: userData.data,
+        data: rows[0],
       });
     } else {
-      res.status(500).json({
-        success: false,
-        message: '無法取得使用者資料',
+      // Fallback: if not in local DB (shouldn't happen for logged in users due to sync), return token info
+      // Or strictly return 404. Since syncUserToLocalDB exists, it should be there.
+      // Let's return what we have in req.user as fallback or error.
+      console.warn(`User ${userId} found in token but not in local DB.`);
+      res.json({
+        success: true,
+        data: user,
       });
     }
   } catch (error) {
-    console.error('SSO 回傳錯誤:', error.message);
+    console.error('Get profile DB error:', error.message);
     res.status(500).json({
       success: false,
-      message: '系統連線錯誤 (無法連接 SSO)',
+      message: '資料庫錯誤',
     });
   }
 };
