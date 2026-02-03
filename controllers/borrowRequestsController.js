@@ -66,6 +66,7 @@ exports.postBookings = async (req, res) => {
     borrower_department,
     borrower_phone,
     borrower_email,
+    borrower_name,
   } = req.body;
 
   const missing = [];
@@ -144,13 +145,13 @@ exports.postBookings = async (req, res) => {
         start_time, end_time, event_name, people_count, 
         teacher_name, reason, status, reject_reason,
         teacher_department, teacher_phone, teacher_email,
-        borrower_department, borrower_phone, borrower_email
+        borrower_department, borrower_phone, borrower_email, borrower_name
         ) VALUES (
         ?, ? , ? , ? , ? , ? , 
         ? , ? , ? , ? ,
         ? , ? , ? , ? ,
         ? , ? , ? ,
-        ? , ? , ? )`;
+        ? , ? , ?, ? )`;
 
   // 取得資料庫連線以啟動交易
   const connection = await pool.getConnection();
@@ -201,6 +202,7 @@ exports.postBookings = async (req, res) => {
       borrower_department,
       borrower_phone,
       borrower_email,
+      borrower_name || '',
     ];
 
     const [result] = await connection.query(insertSql, values);
