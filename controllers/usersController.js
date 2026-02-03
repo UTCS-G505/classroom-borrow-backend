@@ -1,6 +1,7 @@
 const ssoService = require('../services/ssoService');
 const db = require('../db');
 const { getJwtSub } = require('../utils/jwtUtils');
+const { syncUserToLocalDB } = require('../utils/userSync');
 
 // Cookie 配置 - 開發環境跨域設定
 const COOKIE_OPTIONS = {
@@ -10,66 +11,6 @@ const COOKIE_OPTIONS = {
   path: '/', // Cookie 對所有路徑有效
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
 };
-
-/**
- * Sync user from SSO to local database
- * Creates new user or updates existing user based on email
- */
-async function syncUserToLocalDB(uid, accessToken) {
-  try {
-    // Get user profile from SSO
-    const response = await ssoService.getUserProfileFromSSO(uid, accessToken);
-    const userData = response.data;
-
-    if (userData.code !== 0 || !userData.data) {
-      console.error('Failed to get user profile from SSO');
-      return null;
-    }
-
-    const profile = userData.data;
-    const email = profile.email;
-    const name = profile.name || profile.username || email.split('@')[0];
-    const role = profile.role || 6;
-    const department = role <= 4 ? '資科系' : null;
-    const phone_number = profile.phone_number || null;
-
-    // Check if user exists in local DB by user_id (SSO UID)
-    const [existingUsers] = await db.query(
-      'SELECT user_id, role FROM users WHERE user_id = ?',
-      [uid]
-    );
-
-    if (existingUsers.length > 0) {
-      // Update existing user (preserve role)
-      await db.query(
-        'UPDATE users SET name = ?, department = ?, email = ? WHERE user_id = ?',
-        [name, department, email, uid]
-      );
-      return {
-        user_id: uid,
-        email,
-        name,
-        role: existingUsers[0].role,
-        department,
-      };
-    } else {
-      await db.query(
-        'INSERT INTO users (user_id, name, email, phone_number, role, department) VALUES (?, ?, ?, ?, ?, ?)',
-        [uid, name, email, phone_number, role, department]
-      );
-      return {
-        user_id: uid,
-        email,
-        name,
-        role: role,
-        department,
-      };
-    }
-  } catch (error) {
-    console.error('Error syncing user to local DB:', error.message);
-    return null;
-  }
-}
 
 // 登入 API (整合 SSO + JWT)
 exports.login = async (req, res) => {
