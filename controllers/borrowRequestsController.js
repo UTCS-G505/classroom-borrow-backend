@@ -52,6 +52,7 @@ exports.postBookings = async (req, res) => {
   const {
     classroom_id,
     borrow_type,
+    repeat_frequency,
     start_date,
     end_date,
     start_time,
@@ -141,13 +142,13 @@ exports.postBookings = async (req, res) => {
   // SQL INSERT
   const insertSql = `
         INSERT INTO borrow_requests (
-        public_id, user_id, classroom_id, borrow_type, start_date, end_date,
+        public_id, user_id, classroom_id, borrow_type, repeat_frequency, start_date, end_date,
         start_time, end_time, event_name, people_count, 
         teacher_name, reason, status, reject_reason,
         teacher_department, teacher_phone, teacher_email,
         borrower_department, borrower_phone, borrower_email, borrower_name
         ) VALUES (
-        ?, ? , ? , ? , ? , ? , 
+        ?, ? , ? , ? , ? , ? , ? ,
         ? , ? , ? , ? ,
         ? , ? , ? , ? ,
         ? , ? , ? ,
@@ -186,6 +187,7 @@ exports.postBookings = async (req, res) => {
       user_id,
       classroom_id,
       borrow_type,
+      repeat_frequency || null,
       start_date,
       end_date,
       start_time,

@@ -25,6 +25,7 @@ CREATE TABLE borrow_requests (
   user_id VARCHAR(36) NOT NULL,
   classroom_id VARCHAR(10) NOT NULL,
   borrow_type ENUM('單次借用','多次借用') NOT NULL,
+  repeat_frequency ENUM('每天','每周') DEFAULT NULL,
   start_date DATE NOT NULL,
   end_date DATE,
   start_time TIME NOT NULL,
