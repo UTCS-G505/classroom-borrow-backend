@@ -55,29 +55,16 @@ app.use(
 );
 
 app.use(
-  '/announcements',
-  // #swagger.tags = ['announcement']
-  require('./routes/announcements')
-);
-
-app.use(
   '/bookings',
   // #swagger.tags = ['bookings']
   require('./routes/borrowRequests')
 );
 
-app.use(
-  '/classrooms',
-  // #swagger.tags = ['classrooms']
-  require('./routes/classrooms')
-);
-
-app.use(
-  '/test',
-  // #swagger.ignore = true
-  // #swagger.tags = ['測試用']
-  require('./routes/tests')
-);
+// app.use(
+//   '/classrooms',
+//   // #swagger.tags = ['classrooms']
+//   require('./routes/classrooms')
+// );
 
 // Auth routes (登入、Token 相關)
 app.use(
@@ -93,6 +80,13 @@ app.use(
   require('./routes/users')
 );
 
+// Announcements routes
+app.use(
+  '/announcements',
+  // #swagger.tags = ['announcements']
+  require('./routes/announcements.routes')
+);
+
 app.get('/ping', (req, res) => {
   // #swagger.ignore = true
   console.log('Ping route hit');
@@ -102,5 +96,4 @@ app.get('/ping', (req, res) => {
 app.listen(port, () => {
   console.log(`\n=== 伺服器已啟動 ===`);
   console.log(`後端運行於: http://localhost:${port}`);
-  // console.log(`登入測試頁面: http://localhost:${port}/test-login \n`);
 });

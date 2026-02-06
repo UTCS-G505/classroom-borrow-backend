@@ -66,6 +66,27 @@ router.get(
     */
   controller.getAllBookings
 );
+
+router.get(
+  '/blacklist',
+  /* 
+        #swagger.description = '取得所有黑名單'
+        #swagger.responses[200] = { 
+            schema: [
+                {
+                    "blacklist_id": 1,
+                    "user_id": "abc-123",
+                    "reason": "違規使用",
+                    "created_at": "2025-11-29T16:27:57.000Z",
+                    "expired_at": "2026-01-01T00:00:00.000Z",
+                    "user_name": "王小明",
+                    "user_email": "wang@example.com"
+                }
+            ]} 
+    */
+  controller.getAllBlacklist
+);
+
 router.put(
   '/bookings/:id/status',
   /* 
@@ -95,30 +116,7 @@ router.put(
     */
   controller.updateBookings
 );
-router.post(
-  '/announcements',
-  /* 
-        #swagger.description = '新增公告'
-        #swagger.parameters['body'] = {
-            in: 'body',
-            description: '新增申請內容',
-            required: true,
-            schema: {
-                "title": "test1",
-                "content": "test2",
-                "expired_at": "2025-11-24"
-            }
-        } 
-        #swagger.responses[200] = { 
-            schema: 	
-            {
-                "message": "公告已建立",
-                "request_id": 4
-            }
-        } 
-    */
-  controller.postAnnouncement
-);
+
 router.post(
   '/blacklist',
   /* 

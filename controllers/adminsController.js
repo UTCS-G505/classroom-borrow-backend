@@ -11,6 +11,21 @@ exports.getAllBookings = async (req, res) => {
   }
 };
 
+exports.getAllBlacklist = async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT b.*, u.name as user_name, u.email as user_email
+      FROM blacklist b
+      LEFT JOIN users u ON b.user_id = u.user_id
+      ORDER BY b.created_at DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('Query error:', err);
+    res.status(500).json({ error: '資料庫錯誤' });
+  }
+};
+
 function getDatesInRange(startDate, endDate) {
   const date = new Date(startDate);
   const end = new Date(endDate);
@@ -59,21 +74,6 @@ exports.updateBookings = async (req, res) => {
   const updateRequestSql =
     'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE request_id = ?';
 
-  const checkConflictSql = `
-        SELECT * FROM schedule 
-        WHERE classroom_id = ? 
-          AND date = ? 
-          AND SUBSTRING_INDEX(time_slot, '-', 1) < ? 
-          AND SUBSTRING_INDEX(time_slot, '-', -1) > ?
-          AND status = '已預約'
-        FOR UPDATE
-    `;
-
-  const insertScheduleSql = `
-        INSERT INTO schedule (classroom_id, date, time_slot, booked_by, borrow_request_id, event_name, status)
-        VALUES ?
-    `;
-
   const connection = await pool.getConnection();
 
   try {
@@ -100,7 +100,7 @@ exports.updateBookings = async (req, res) => {
     const dbStatus = status === 'approved' ? '核准' : '退件';
     const reason = status === 'approved' ? null : reject_reason;
 
-    // 3. 如果是 'approved'，需要檢查衝突並寫入 schedule
+    // 3. 如果是 'approved'，需要檢查衝突
     if (status === 'approved') {
       const sDateRaw = requestData.start_date;
       const eDateRaw = requestData.end_date || requestData.start_date;
@@ -116,11 +116,25 @@ exports.updateBookings = async (req, res) => {
       const startTimeStr = formatTime(requestData.start_time);
       const endTimeStr = formatTime(requestData.end_time);
 
+      // Check for conflicts in borrow_requests (Approved, Pending, Teacher Approved)
+      // Exclude current request itself
+      const checkConflictSql = `
+          SELECT request_id FROM borrow_requests 
+          WHERE classroom_id = ? 
+          AND start_date = ? 
+          AND status IN ('核准', '已預約', '教師核准', '審核中') 
+          AND request_id != ? 
+          AND start_time < ? 
+          AND end_time > ?
+          FOR UPDATE
+      `;
+
       // 檢查所有日期的衝突
       for (const dateStr of targetDates) {
         const [conflicts] = await connection.query(checkConflictSql, [
           requestData.classroom_id,
           dateStr,
+          request_id,
           endTimeStr,
           startTimeStr,
         ]);
@@ -128,28 +142,12 @@ exports.updateBookings = async (req, res) => {
         if (conflicts.length > 0) {
           await connection.rollback();
           return res.status(409).json({
-            error: '該時段已被預約',
+            error: '該時段已被預約或正在審核中',
             conflictDate: dateStr,
             conflictDetails: conflicts[0],
           });
         }
       }
-
-      // 無衝突，準備寫入 schedule
-      const timeSlotString = `${startTimeStr}-${endTimeStr}`;
-      const scheduleStatus = '已預約';
-
-      const valuesToInsert = targetDates.map((dateStr) => [
-        requestData.classroom_id,
-        dateStr,
-        timeSlotString,
-        requestData.user_id,
-        request_id,
-        requestData.event_name,
-        scheduleStatus,
-      ]);
-
-      await connection.query(insertScheduleSql, [valuesToInsert]);
     }
 
     // 更新 borrow_requests 狀態
@@ -167,35 +165,6 @@ exports.updateBookings = async (req, res) => {
     res.status(500).json({ error: '資料庫錯誤' });
   } finally {
     connection.release();
-  }
-};
-
-exports.postAnnouncement = async (req, res) => {
-  const { title, content, expired_at } = req.body;
-
-  const missing = [];
-  if (!title) missing.push('title');
-  if (!content) missing.push('content');
-  if (!expired_at) missing.push('expired_at');
-
-  if (missing.length > 0) {
-    return res.status(400).json({
-      error: `缺少必要欄位: ${missing.join(', ')}`,
-    });
-  }
-
-  const sql = `
-        INSERT INTO announcements (title, content, expired_at)
-        VALUES
-        (?,?,?)`;
-  const values = [title, content, expired_at];
-
-  try {
-    const [result] = await pool.query(sql, values);
-    res.json({ message: '申請已建立', request_id: result.insertId });
-  } catch (err) {
-    console.error('新增資料失敗:', err);
-    res.status(500).json({ error: '資料庫錯誤' });
   }
 };
 

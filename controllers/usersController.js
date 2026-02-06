@@ -1,6 +1,7 @@
 const ssoService = require('../services/ssoService');
 const db = require('../db');
 const { getJwtSub } = require('../utils/jwtUtils');
+const { syncUserToLocalDB } = require('../utils/userSync');
 
 // Cookie 配置 - 開發環境跨域設定
 const COOKIE_OPTIONS = {
@@ -11,72 +12,9 @@ const COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
 };
 
-/**
- * Sync user from SSO to local database
- * Creates new user or updates existing user based on email
- */
-async function syncUserToLocalDB(uid, accessToken) {
-  try {
-    // Get user profile from SSO
-    const response = await ssoService.getUserProfileFromSSO(uid, accessToken);
-    const userData = response.data;
-
-    if (userData.code !== 0 || !userData.data) {
-      console.error('Failed to get user profile from SSO');
-      return null;
-    }
-
-    const profile = userData.data;
-    const email = profile.primary_email;
-    const name = profile.name || profile.username || email.split('@')[0];
-    const role = profile.role || 6;
-    const department = role <= 4 ? '資科系' : null;
-    const phone_number = profile.phone_number || null;
-    console.log("user profile: ", profile);
-
-    // Check if user exists in local DB by user_id (SSO UID)
-    const [existingUsers] = await db.query(
-      'SELECT user_id, role FROM users WHERE user_id = ?',
-      [uid]
-    );
-
-    if (existingUsers.length > 0) {
-      // Update existing user (preserve role)
-      await db.query(
-        'UPDATE users SET name = ?, department = ?, email = ? WHERE user_id = ?',
-        [name, department, email, uid]
-      );
-      return {
-        user_id: uid,
-        email,
-        name,
-        role: existingUsers[0].role,
-        department,
-      };
-    } else {
-      await db.query(
-        'INSERT INTO users (user_id, name, email, phone_number, role, department) VALUES (?, ?, ?, ?, ?, ?)',
-        [uid, name, email, phone_number, role, department]
-      );
-      console.log(`Created new user: ${email} with ID: ${uid}`);
-      return {
-        user_id: uid,
-        email,
-        name,
-        role: role,
-        department,
-      };
-    }
-  } catch (error) {
-    console.error('Error syncing user to local DB:', error.message);
-    return null;
-  }
-}
-
 // 登入 API (整合 SSO + JWT)
 exports.login = async (req, res) => {
   const { account, password } = req.body;
-  console.log(`收到登入請求: ${account}`);
 
   try {
     // 發送請求給學校 SSO
@@ -195,8 +133,6 @@ exports.refreshToken = async (req, res) => {
       // 檢查是否有新的 Cookie (例如 Refresh Token Rotation)
       let newCookies = response.headers['set-cookie'];
       if (newCookies) {
-        console.log('SSO 回傳新的 Cookies:', newCookies);
-
         // 如果是單字串轉為陣列
         if (!Array.isArray(newCookies)) {
           newCookies = [newCookies];
@@ -210,7 +146,6 @@ exports.refreshToken = async (req, res) => {
             .replace(/SameSite=[^;]+;?/gi, 'SameSite=Lax;'); // 強制設定 SameSite
         });
 
-        console.log('修改後的 Cookies:', modifiedCookies);
         res.set('Set-Cookie', modifiedCookies);
       }
 
@@ -289,39 +224,44 @@ exports.logout = async (req, res) => {
 };
 
 exports.getProfile = async (req, res) => {
-  const uid = req.query.uid;
-  const accessToken = req.headers['authorization']
-    ? req.headers['authorization'].split(' ')[1]
-    : null;
-  console.log(`取得使用者資料請求，UID: ${uid}`);
+  // authMiddleware.authenticateToken should have already populated req.user
+  const user = req.user;
 
-  if (!accessToken) {
+  if (!user || (!user.user_id && !user.uid)) {
     return res.status(401).json({
       success: false,
-      message: '未提供 access token',
+      message: '未驗證的使用者',
     });
   }
 
-  try {
-    const response = await ssoService.getUserProfileFromSSO(uid, accessToken);
-    const userData = response.data;
+  const userId = user.user_id || user.uid;
 
-    if (userData.code === 0) {
+  try {
+    // Fetch latest data from local DB
+    const [rows] = await db.query('SELECT * FROM users WHERE user_id = ?', [
+      userId,
+    ]);
+
+    if (rows.length > 0) {
       res.json({
         success: true,
-        data: userData.data,
+        data: rows[0],
       });
     } else {
-      res.status(500).json({
-        success: false,
-        message: '無法取得使用者資料',
+      // Fallback: if not in local DB (shouldn't happen for logged in users due to sync), return token info
+      // Or strictly return 404. Since syncUserToLocalDB exists, it should be there.
+      // Let's return what we have in req.user as fallback or error.
+      console.warn(`User ${userId} found in token but not in local DB.`);
+      res.json({
+        success: true,
+        data: user,
       });
     }
   } catch (error) {
-    console.error('SSO 回傳錯誤:', error.message);
+    console.error('Get profile DB error:', error.message);
     res.status(500).json({
       success: false,
-      message: '系統連線錯誤 (無法連接 SSO)',
+      message: '資料庫錯誤',
     });
   }
 };

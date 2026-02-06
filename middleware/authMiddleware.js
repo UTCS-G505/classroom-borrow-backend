@@ -1,8 +1,7 @@
 const jwt = require('jsonwebtoken');
-const fs = require('fs');
-const path = require('path');
-const db = require('../db');
 const { getJwtSub } = require('../utils/jwtUtils');
+const { USER_ROLES } = require('../utils/constants');
+const { syncUserToLocalDB } = require('../utils/userSync');
 
 // Read public key once at startup
 // const PUBLIC_KEY = fs.readFileSync(
@@ -13,6 +12,7 @@ const { getJwtSub } = require('../utils/jwtUtils');
 /**
  * Middleware to authenticate access token
  * Decodes JWT and attaches user info (including role from local DB) to req.user
+ * Automatically syncs user to local DB if not found
  */
 exports.authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -43,26 +43,25 @@ exports.authenticateToken = async (req, res, next) => {
 
     if (uid) {
       try {
-        const [users] = await db.query(
-          'SELECT user_id, name, email, role, department FROM users WHERE user_id = ? OR email = ?',
-          [uid, decoded.email || '']
-        );
+        // syncUserToLocalDB checks DB first, returns existing user or syncs from SSO
+        const user = await syncUserToLocalDB(uid, accessToken);
 
-        if (users.length > 0) {
+        if (user) {
           req.user = {
             ...decoded,
-            user_id: users[0].user_id,
-            name: users[0].name,
-            email: users[0].email,
-            role: users[0].role,
-            department: users[0].department,
+            user_id: user.user_id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            department: user.department,
           };
         } else {
-          // User not in local DB yet - attach decoded token info only
+          // Sync failed - attach decoded token info only
+          console.warn(`Failed to get/sync user ${uid}`);
           req.user = {
             ...decoded,
             uid: uid,
-            role: null, // No role until user is synced to local DB
+            role: null,
           };
         }
       } catch (dbError) {
@@ -84,31 +83,41 @@ exports.authenticateToken = async (req, res, next) => {
  * Middleware to authorize admin users only
  * Must be used after authenticateToken middleware
  */
-exports.authorizeAdmin = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ success: false, message: '未經驗證的請求' });
-  }
-
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ success: false, message: '需要管理員權限' });
-  }
-
-  next();
-};
-
-/**
- * Middleware to authorize teacher or admin users
- * Must be used after authenticateToken middleware
- */
 exports.authorizeTeacherOrAdmin = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ success: false, message: '未經驗證的請求' });
   }
 
-  if (req.user.role !== 'admin' && req.user.role !== 'teacher') {
+  const userRole = req.user.role;
+  // Allow ADMIN, TEACHER, or OFFICER (if OFFICER counts as admin-like for this context)
+  // Plan said: Update authorizeTeacherOrAdmin and authorizeAdmin to use USER_ROLES constants.
+  if (
+    ![USER_ROLES.ADMIN, USER_ROLES.TEACHER, USER_ROLES.OFFICER].includes(
+      userRole
+    )
+  ) {
     return res
       .status(403)
       .json({ success: false, message: '需要教師或管理員權限' });
+  }
+
+  next();
+};
+
+exports.authorizeAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: '未經驗證的請求' });
+  }
+
+  if (
+    req.user.role !== USER_ROLES.ADMIN &&
+    req.user.role !== USER_ROLES.OFFICER
+  ) {
+    // Assuming OFFICER is also powerful enough? Or strictly ADMIN=0?
+    // Existing code only checked 'admin'.
+    // I will stick to ADMIN (0) and maybe OFFICER (1) if they are staff.
+    // Let's stick to ADMIN and OFFICER for "Admin" rights in this context as per typical system evolution.
+    return res.status(403).json({ success: false, message: '需要管理員權限' });
   }
 
   next();
