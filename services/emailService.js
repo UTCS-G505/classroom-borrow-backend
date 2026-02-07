@@ -47,13 +47,27 @@ const sendTeacherSignoffMail = async ({
   });
 };
 
-const sendTASignoffMail = async ({ taEmail, borrowId, publicId, baseUrl }) => {
+const sendTASignoffMail = async ({
+  taEmail,
+  borrowId,
+  publicId,
+  baseUrl,
+  comment,
+}) => {
   const idToUse = publicId || borrowId;
+  const commentHtml = comment
+    ? `<p style="background-color: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: 10px;">
+         📝 <strong>老師意見：</strong> ${comment}
+       </p>`
+    : '';
+
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: taEmail,
     subject: `【需助教覆核】申請單 #${borrowId}`,
-    html: `<p>老師已核准。</p><a href="${baseUrl}/ta-signoff?id=${idToUse}">前往助教簽核</a>`,
+    html: `<p>老師已核准。</p>
+           ${commentHtml}
+           <a href="${baseUrl}/ta-signoff?id=${idToUse}">前往助教簽核</a>`,
   });
 };
 
@@ -65,7 +79,14 @@ const sendApprovalNotification = async ({
   startDate,
   startTime,
   endTime,
+  comment,
 }) => {
+  const commentHtml = comment
+    ? `<p style="background-color: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: 10px;">
+         📝 <strong>助教/系辦備註：</strong> ${comment}
+       </p>`
+    : '';
+
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: userEmail,
@@ -82,6 +103,7 @@ const sendApprovalNotification = async ({
             <p style="background-color: #e8f5e9; padding: 10px; border-radius: 5px;">
                ✅ <strong>最終狀態：助教已核准 (APPROVED)</strong>
             </p>
+            ${commentHtml}
             <p>請記得準時使用教室，並於使用完畢後將場地復原。</p>
           </div>
         `,
