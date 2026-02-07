@@ -358,6 +358,7 @@ exports.teacherSignoff = async (req, res) => {
           borrowId: request.request_id, // 使用內部 Integer ID 顯示
           publicId: request.public_id, // 使用 UUID 於連結
           baseUrl,
+          comment,
         });
       } catch (emailError) {
         console.error('助教通知信寄送失敗:', emailError);
@@ -445,7 +446,7 @@ exports.taSignoff = async (req, res) => {
 
     await connection.query(
       'UPDATE borrow_requests SET status = ?, reject_reason = ? WHERE public_id = ?',
-      [status, status === '退件' ? reject_reason : null, id]
+      [status, reject_reason, id]
     );
 
     await connection.commit();
@@ -460,6 +461,7 @@ exports.taSignoff = async (req, res) => {
           startDate: request.start_date,
           startTime: request.start_time,
           endTime: request.end_time,
+          comment: reject_reason,
         });
       } catch (emailError) {
         console.error('核准通知信寄送失敗:', emailError);
