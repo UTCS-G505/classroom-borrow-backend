@@ -19,6 +19,16 @@ const formatTimeForDisplay = (timeStr) => {
   return timeStr.toString().substring(0, 5);
 };
 
+// 樣式設定：保持簡潔現代感
+const styles = {
+  container: 'font-family: "PingFang TC", "Heiti TC", "Microsoft JhengHei", sans-serif; color: #333; max-width: 600px; border: 1px solid #eee; padding: 24px; border-radius: 12px;',
+  title: 'font-size: 20px; font-weight: bold; margin-bottom: 16px;',
+  item: 'margin: 8px 0; font-size: 15px;',
+  label: 'color: #666; width: 80px; display: inline-block;',
+  button: 'display: inline-block; padding: 12px 24px; background-color: #4A90E2; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500; margin-top: 20px;',
+  noteBox: 'background-color: #f8f9fa; border-left: 4px solid #ddd; padding: 12px; margin: 16px 0; border-radius: 4px;'
+};
+
 const sendTeacherSignoffMail = async ({
   teacherEmail,
   borrowId,
@@ -31,19 +41,25 @@ const sendTeacherSignoffMail = async ({
   baseUrl,
   publicId,
 }) => {
-  // Use publicId if available, otherwise fallback to borrowId
   const idToUse = publicId || borrowId;
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: teacherEmail,
-    subject: `【請簽核】申請單 #${borrowId}`,
+    subject: `【需簽核】教室借用申請：${activityName}`,
     html: `
-        <p><strong>申請人：</strong> ${userEmail}</p>
-        <p><strong>活動：</strong> ${activityName}</p>
-        <p><strong>教室：</strong> ${classroom}</p>
-        <p><strong>時間：</strong> ${date} ${startTime} - ${endTime}</p>
-        <a href="${baseUrl}/teacher-signoff?id=${idToUse}">前往簽核</a>
-      `,
+      <div style="${styles.container}">
+        <div style="${styles.title}">老師您好，有一項借用申請待審核</div>
+        <p>以下是學生的教室借用內容：</p>
+        <div style="${styles.item}"><span style="${styles.label}">申請人：</span>${userEmail}</div>
+        <div style="${styles.item}"><span style="${styles.label}">活動：</span>${activityName}</div>
+        <div style="${styles.item}"><span style="${styles.label}">地點：</span>${classroom}</div>
+        <div style="${styles.item}"><span style="${styles.label}">時間：</span>${date} ${startTime} - ${endTime}</div>
+        
+        <a href="${baseUrl}/teacher-signoff?id=${idToUse}" style="${styles.button}">點此前往簽核</a>
+        
+        <p style="font-size: 13px; color: #999; margin-top: 30px;">這是系統自動發送的訊息，請勿直接回覆。</p>
+      </div>
+    `,
   });
 };
 
@@ -56,18 +72,21 @@ const sendTASignoffMail = async ({
 }) => {
   const idToUse = publicId || borrowId;
   const commentHtml = comment
-    ? `<p style="background-color: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: 10px;">
-         📝 <strong>老師意見：</strong> ${comment}
-       </p>`
+    ? `<div style="${styles.noteBox}"><strong>老師的留言：</strong><br/>${comment}</div>`
     : '';
 
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: taEmail,
-    subject: `【需助教覆核】申請單 #${borrowId}`,
-    html: `<p>老師已核准。</p>
-           ${commentHtml}
-           <a href="${baseUrl}/ta-signoff?id=${idToUse}">前往助教簽核</a>`,
+    subject: `【助教覆核】申請單 #${borrowId} 老師已核准`,
+    html: `
+      <div style="${styles.container}">
+        <div style="${styles.title}">助教您好，有新申請需覆核</div>
+        <p>申請單 <strong>#${borrowId}</strong> 已經過老師初步簽核，請撥冗進行最後覆核。</p>
+        ${commentHtml}
+        <a href="${baseUrl}/ta-signoff?id=${idToUse}" style="${styles.button}">進入系統處理</a>
+      </div>
+    `,
   });
 };
 
@@ -82,31 +101,27 @@ const sendApprovalNotification = async ({
   comment,
 }) => {
   const commentHtml = comment
-    ? `<p style="background-color: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: 10px;">
-         📝 <strong>助教/系辦備註：</strong> ${comment}
-       </p>`
+    ? `<div style="${styles.noteBox}"><strong>管理員備註：</strong><br/>${comment}</div>`
     : '';
 
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: userEmail,
-    subject: `【申請通過】教室借用申請單 #${borrowId} 已核准`,
+    subject: `【借用成功】您的教室申請已通過審核`,
     html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
-            <h2 style="color:green">🎉 恭喜！您的教室借用申請已通過。</h2>
-            <p><strong>申請單號：</strong> #${borrowId}</p>
-            <p><strong>活動名稱：</strong> ${eventName}</p>
-            <p><strong>借用教室：</strong> ${classroom}</p>
-            <p><strong>借用日期：</strong> ${formatDateForDisplay(startDate)}</p>
-            <p><strong>借用時間：</strong> ${formatTimeForDisplay(startTime)} - ${formatTimeForDisplay(endTime)}</p>
-            <hr/>
-            <p style="background-color: #e8f5e9; padding: 10px; border-radius: 5px;">
-               ✅ <strong>最終狀態：助教已核准 (APPROVED)</strong>
-            </p>
-            ${commentHtml}
-            <p>請記得準時使用教室，並於使用完畢後將場地復原。</p>
-          </div>
-        `,
+      <div style="${styles.container}">
+        <div style="${styles.title}; color: #28a745;">借用申請已核准！</div>
+        <p>同學您好，您的教室借用申請（#${borrowId}）已審核通過。</p>
+        <div style="${styles.noteBox}">
+          <strong>借用資訊：</strong><br/>
+          活動：${eventName}<br/>
+          教室：${classroom}<br/>
+          時間：${formatDateForDisplay(startDate)} ${formatTimeForDisplay(startTime)} - ${formatTimeForDisplay(endTime)}
+        </div>
+        ${commentHtml}
+        <p>使用完畢後請記得關閉電源、維持場地整潔，謝謝！</p>
+      </div>
+    `,
   });
 };
 
@@ -123,22 +138,18 @@ const sendRejectionNotification = async ({
   await transporter.sendMail({
     from: process.env.MAIL_USER,
     to: userEmail,
-    subject: `【申請駁回】教室借用申請單 #${borrowId} 未通過`,
+    subject: `【申請未通過】教室借用狀態通知`,
     html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
-            <h2 style="color:red">⚠️ 很遺憾，您的申請已被駁回。</h2>
-            <p><strong>申請單號：</strong> #${borrowId}</p>
-            <p><strong>活動名稱：</strong> ${eventName}</p>
-            <p><strong>借用教室：</strong> ${classroom}</p>
-            <p><strong>借用日期：</strong> ${formatDateForDisplay(startDate)}</p>
-            <p><strong>借用時間：</strong> ${formatTimeForDisplay(startTime)} - ${formatTimeForDisplay(endTime)}</p>
-            <hr/>
-            <p style="background-color: #ffebee; padding: 10px; border-radius: 5px;">
-               ❌ <strong>駁回理由：</strong> ${reason || '未提供理由'}
-            </p>
-            <p>如有疑問，請聯繫相關管理單位。</p>
-          </div>
-        `,
+      <div style="${styles.container}">
+        <div style="${styles.title}; color: #dc3545;">借用申請未通過</div>
+        <p>同學您好，很抱歉，您的教室借用申請（#${borrowId}）已被駁回。</p>
+        <div style="${styles.noteBox}">
+          <strong>駁回原因：</strong><br/>
+          ${reason || '未提供具體原因，建議洽詢相關單位。'}
+        </div>
+        <p style="font-size: 14px; color: #666;">原申請活動：${eventName}</p>
+      </div>
+    `,
   });
 };
 
