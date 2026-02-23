@@ -90,7 +90,10 @@ exports.updateProfessor = async (req, res) => {
       return res.status(404).json({ error: '找不到教授資料' });
     }
 
-    res.json({ message: '教授資料已更新', professor_id: professorId });
+    res.json({
+      message: '教授資料已更新',
+      professor_id: Number.parseInt(professorId, 10),
+    });
   } catch (err) {
     console.error('Update error:', err);
     res.status(500).json({ error: '資料庫錯誤' });
@@ -110,7 +113,10 @@ exports.deleteProfessor = async (req, res) => {
       return res.status(404).json({ error: '找不到教授資料' });
     }
 
-    res.json({ message: '教授資料已刪除', professor_id: professorId });
+    res.json({
+      message: '教授資料已刪除',
+      professor_id: Number.parseInt(professorId, 10),
+    });
   } catch (err) {
     console.error('Delete error:', err);
     res.status(500).json({ error: '資料庫錯誤' });
