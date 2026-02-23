@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/scheduleController');
+const {
+  authenticateToken,
+  authorizeAdmin,
+} = require('../middleware/authMiddleware');
 
 // GET /bookings/schedule?date=...&classroom_id=...
 router.get(
@@ -36,6 +40,31 @@ router.get(
         ]} 
     */
   controller.getSchedule
+);
+
+router.put(
+  '/:id',
+  authenticateToken,
+  authorizeAdmin,
+  /*
+        #swagger.description = '管理員更新課表'
+        #swagger.parameters['id'] = {
+            in: 'path',
+            description: '課表編號',
+            required: true,
+            schema: "1"
+        }
+        #swagger.parameters['body'] = {
+            in: 'body',
+            description: '可更新欄位',
+            required: true,
+            schema: {
+                "event_name": "英文戲劇社演出",
+                "status": "已預約"
+            }
+        }
+    */
+  controller.updateSchedule
 );
 
 module.exports = router;
