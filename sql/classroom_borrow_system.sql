@@ -68,6 +68,23 @@ CREATE TABLE blacklist (
     ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- schedule（課表管理）
+CREATE TABLE schedule (
+  schedule_id INT AUTO_INCREMENT PRIMARY KEY,
+  classroom_id VARCHAR(10) NOT NULL,
+  date DATE NOT NULL,
+  time_slot VARCHAR(11) NOT NULL,
+  booked_by VARCHAR(36),
+  borrow_request_id INT,
+  event_name VARCHAR(100) NOT NULL,
+  status ENUM('已預約','教師核准','審核中') DEFAULT '審核中',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (booked_by) REFERENCES users(user_id)
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  FOREIGN KEY (borrow_request_id) REFERENCES borrow_requests(request_id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 -- 索引（加速查詢）
 CREATE INDEX idx_borrow_status ON borrow_requests(status);
 
