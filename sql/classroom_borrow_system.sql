@@ -18,6 +18,16 @@ CREATE TABLE users (
 -- classrooms（教室）
 -- TABLE REMOVED: Validation moved to frontend/static.
 
+-- professors（教授）
+CREATE TABLE professors (
+  professor_id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(50) NOT NULL,
+  department VARCHAR(50),
+  phone VARCHAR(20),
+  email VARCHAR(100) UNIQUE NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- borrow_requests（借用申請）
 CREATE TABLE borrow_requests (
   request_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -75,5 +85,6 @@ CREATE INDEX idx_borrow_status ON borrow_requests(status);
 SHOW TABLES;
 
 SELECT request_id,user_id,classroom_id,borrow_type,start_date,start_time,end_time,status FROM borrow_requests;
+SELECT * FROM professors;
 SELECT * FROM announcements;
 SELECT * FROM blacklist;
