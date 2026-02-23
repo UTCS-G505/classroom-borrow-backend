@@ -77,7 +77,7 @@ CREATE TABLE schedule (
   booked_by VARCHAR(36),
   borrow_request_id INT,
   event_name VARCHAR(100) NOT NULL,
-  status ENUM('已預約','教師核准','審核中') DEFAULT '審核中',
+  status ENUM('審核中','教師核准','核准','已預約') DEFAULT '審核中',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (booked_by) REFERENCES users(user_id)
     ON DELETE SET NULL ON UPDATE CASCADE,
