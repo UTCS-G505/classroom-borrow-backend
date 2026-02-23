@@ -24,7 +24,7 @@ exports.getSchedule = async (req, res) => {
     const [rows] = await pool.query(sql, values);
     res.json(rows);
   } catch (err) {
-    console.error('序列 error:', err);
+    console.error('getSchedule error:', err);
     res.status(500).json({ error: '資料庫錯誤' });
   }
 };
@@ -32,6 +32,10 @@ exports.getSchedule = async (req, res) => {
 exports.updateSchedule = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!/^\d+$/.test(id) || Number(id) <= 0) {
+      return res.status(400).json({ error: '無效的課表編號' });
+    }
+
     const allowedFields = [
       'classroom_id',
       'date',
@@ -41,11 +45,13 @@ exports.updateSchedule = async (req, res) => {
       'event_name',
       'status',
     ];
+    const allowedFieldSet = new Set(allowedFields);
 
     const updates = [];
     const values = [];
 
-    allowedFields.forEach((field) => {
+    Object.keys(req.body).forEach((field) => {
+      if (!allowedFieldSet.has(field)) return;
       if (req.body[field] !== undefined) {
         updates.push(`${field} = ?`);
         values.push(req.body[field]);
