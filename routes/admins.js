@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/adminsController');
+const scheduleController = require('../controllers/scheduleController');
 const {
   authenticateToken,
   authorizeAdmin,
@@ -161,5 +162,39 @@ router.delete(
     */
   controller.deleteBlackList
 );
+
+router.get(
+  '/users',
+  /* 
+        #swagger.description = '取得所有使用者清單及黑名單狀態'
+    */
+  controller.getAllUsers
+);
+
+router.put(
+  '/users/:id/role',
+  /* 
+        #swagger.description = '更改使用者權限'
+        #swagger.parameters['id'] = {
+            in: 'path',
+            description: '使用者ID',
+            required: true
+        }
+        #swagger.parameters['body'] = {
+            in: 'body',
+            description: '新權限值',
+            required: true,
+            schema: {
+                "role": 1
+            }
+        } 
+    */
+  controller.updateUserRole
+);
+
+router.get('/schedules', scheduleController.getAllSchedules);
+router.post('/schedules/import', scheduleController.importSchedule);
+router.delete('/schedules/clear', scheduleController.clearSchedules);
+router.delete('/schedules/semester', scheduleController.deleteSemesterSchedules);
 
 module.exports = router;

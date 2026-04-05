@@ -171,6 +171,73 @@ exports.postBookings = async (req, res) => {
       });
     }
 
+    // 檢查固定課表衝突 class_schedules
+    let classCheckSql;
+    let classCheckValues;
+    const dayOfWeek = dayjs(sDate).day(); // 0(Sun) - 6(Sat)
+
+    if (borrow_type === '單次借用') {
+      classCheckSql = `
+        SELECT schedule_id FROM class_schedules
+        WHERE classroom_id = ?
+          AND weekday = ?
+          AND semester_start_date <= ?
+          AND semester_end_date >= ?
+          AND start_time < ?
+          AND end_time > ?
+      `;
+      classCheckValues = [
+        classroom_id,
+        dayOfWeek,
+        sDate,
+        sDate,
+        end_time,
+        start_time,
+      ];
+    } else {
+      if (repeat_frequency === '每周') {
+        classCheckSql = `
+          SELECT schedule_id FROM class_schedules
+          WHERE classroom_id = ?
+            AND weekday = ?
+            AND semester_start_date <= ?
+            AND semester_end_date >= ?
+            AND start_time < ?
+            AND end_time > ?
+        `;
+        classCheckValues = [
+          classroom_id,
+          dayOfWeek,
+          eDate,
+          sDate,
+          end_time,
+          start_time,
+        ];
+      } else {
+        classCheckSql = `
+          SELECT schedule_id FROM class_schedules
+          WHERE classroom_id = ?
+            AND semester_start_date <= ?
+            AND semester_end_date >= ?
+            AND start_time < ?
+            AND end_time > ?
+        `;
+        classCheckValues = [classroom_id, eDate, sDate, end_time, start_time];
+      }
+    }
+
+    const [classReqRows] = await connection.query(
+      classCheckSql,
+      classCheckValues
+    );
+    if (classReqRows.length > 0) {
+      console.log(`固定課表衝突！該時段已有安排課程`);
+      await connection.rollback();
+      return res.status(409).json({
+        error: '該時段與固定課表衝突，請選擇其他時間。',
+      });
+    }
+
     console.log('檢查通過，時段可用');
 
     if (!teacher_department) teacher_department = '';
