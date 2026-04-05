@@ -186,14 +186,7 @@ exports.postBookings = async (req, res) => {
           AND start_time < ?
           AND end_time > ?
       `;
-      classCheckValues = [
-        classroom_id,
-        dayOfWeek,
-        sDate,
-        sDate,
-        end_time,
-        start_time,
-      ];
+      classCheckValues = [classroom_id, dayOfWeek, sDate, sDate, end_time, start_time];
     } else {
       if (repeat_frequency === '每周') {
         classCheckSql = `
@@ -205,14 +198,7 @@ exports.postBookings = async (req, res) => {
             AND start_time < ?
             AND end_time > ?
         `;
-        classCheckValues = [
-          classroom_id,
-          dayOfWeek,
-          eDate,
-          sDate,
-          end_time,
-          start_time,
-        ];
+        classCheckValues = [classroom_id, dayOfWeek, eDate, sDate, end_time, start_time];
       } else {
         classCheckSql = `
           SELECT schedule_id FROM class_schedules
@@ -226,10 +212,7 @@ exports.postBookings = async (req, res) => {
       }
     }
 
-    const [classReqRows] = await connection.query(
-      classCheckSql,
-      classCheckValues
-    );
+    const [classReqRows] = await connection.query(classCheckSql, classCheckValues);
     if (classReqRows.length > 0) {
       console.log(`固定課表衝突！該時段已有安排課程`);
       await connection.rollback();
