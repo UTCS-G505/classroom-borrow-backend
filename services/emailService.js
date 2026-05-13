@@ -21,12 +21,15 @@ const formatTimeForDisplay = (timeStr) => {
 
 // 樣式設定：保持簡潔現代感
 const styles = {
-  container: 'font-family: "PingFang TC", "Heiti TC", "Microsoft JhengHei", sans-serif; color: #333; max-width: 600px; border: 1px solid #eee; padding: 24px; border-radius: 12px;',
+  container:
+    'font-family: "PingFang TC", "Heiti TC", "Microsoft JhengHei", sans-serif; color: #333; max-width: 600px; border: 1px solid #eee; padding: 24px; border-radius: 12px;',
   title: 'font-size: 20px; font-weight: bold; margin-bottom: 16px;',
   item: 'margin: 8px 0; font-size: 15px;',
   label: 'color: #666; width: 80px; display: inline-block;',
-  button: 'display: inline-block; padding: 12px 24px; background-color: #4A90E2; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500; margin-top: 20px;',
-  noteBox: 'background-color: #f8f9fa; border-left: 4px solid #ddd; padding: 12px; margin: 16px 0; border-radius: 4px;'
+  button:
+    'display: inline-block; padding: 12px 24px; background-color: #4A90E2; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500; margin-top: 20px;',
+  noteBox:
+    'background-color: #f8f9fa; border-left: 4px solid #ddd; padding: 12px; margin: 16px 0; border-radius: 4px;',
 };
 
 const sendTeacherSignoffMail = async ({

@@ -68,6 +68,20 @@ CREATE TABLE blacklist (
     ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- class_schedules (固定課表)
+CREATE TABLE class_schedules (
+  schedule_id INT AUTO_INCREMENT PRIMARY KEY,
+  classroom_id VARCHAR(10) NOT NULL,
+  course_name VARCHAR(100) NOT NULL,
+  teacher_name VARCHAR(50) NOT NULL,
+  weekday TINYINT NOT NULL COMMENT '0=Sunday, 1=Monday...',
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  semester_start_date DATE NOT NULL,
+  semester_end_date DATE NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 索引（加速查詢）
 CREATE INDEX idx_borrow_status ON borrow_requests(status);
 

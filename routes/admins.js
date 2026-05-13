@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/adminsController');
+const scheduleController = require('../controllers/scheduleController');
 const {
   authenticateToken,
   authorizeAdmin,
@@ -190,5 +191,10 @@ router.put(
     */
   controller.updateUserRole
 );
+
+router.get('/schedules', scheduleController.getAllSchedules);
+router.post('/schedules/import', scheduleController.importSchedule);
+router.delete('/schedules/clear', scheduleController.clearSchedules);
+router.delete('/schedules/semester', scheduleController.deleteSemesterSchedules);
 
 module.exports = router;
