@@ -80,6 +80,12 @@ app.use(
   require('./routes/users')
 );
 
+app.use(
+  '/professors',
+  // #swagger.tags = ['professors']
+  require('./routes/professors')
+);
+
 // Announcements routes
 app.use(
   '/announcements',
