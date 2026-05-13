@@ -39,12 +39,12 @@ exports.authenticateToken = async (req, res, next) => {
     }
 
     // Get user from local database to include role information
-    const uid = getJwtSub(accessToken) || decoded.sub || decoded.uid;
+    const uuid = getJwtSub(accessToken) || decoded.sub;
 
-    if (uid) {
+    if (uuid) {
       try {
         // syncUserToLocalDB checks DB first, returns existing user or syncs from SSO
-        const user = await syncUserToLocalDB(uid, accessToken);
+        const user = await syncUserToLocalDB(uuid, accessToken);
 
         if (user) {
           req.user = {
@@ -57,16 +57,16 @@ exports.authenticateToken = async (req, res, next) => {
           };
         } else {
           // Sync failed - attach decoded token info only
-          console.warn(`Failed to get/sync user ${uid}`);
+          console.warn(`Failed to get/sync user ${uuid}`);
           req.user = {
             ...decoded,
-            uid: uid,
+            user_id: uuid,
             role: null,
           };
         }
       } catch (dbError) {
         console.error('Database error in auth middleware:', dbError.message);
-        req.user = { ...decoded, uid: uid, role: null };
+        req.user = { ...decoded, user_id: uuid, role: null };
       }
     } else {
       req.user = decoded;

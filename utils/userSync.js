@@ -6,16 +6,16 @@ const ssoService = require('../services/ssoService');
  * Checks database first - only calls SSO if user is NOT found
  * This optimizes performance for returning users
  *
- * @param {string} uid - SSO User ID
+ * @param {string} userId - SSO user UUID
  * @param {string} accessToken - SSO Access Token
  * @returns {Promise<Object|null>} User object if sync successful, null otherwise
  */
-async function syncUserToLocalDB(uid, accessToken) {
+async function syncUserToLocalDB(userId, accessToken) {
   try {
     // 1. Check if user exists in local DB FIRST
     const [existingUsers] = await db.query(
       'SELECT user_id, name, email, role, department FROM users WHERE user_id = ?',
-      [uid]
+      [userId]
     );
 
     // 2. If user exists, return existing data (skip SSO call)
@@ -24,7 +24,10 @@ async function syncUserToLocalDB(uid, accessToken) {
     }
 
     // 3. User not found - fetch profile from SSO (only for new users)
-    const response = await ssoService.getUserProfileFromSSO(uid, accessToken);
+    const response = await ssoService.getUserProfileFromSSO(
+      userId,
+      accessToken
+    );
     const userData = response.data;
 
     if (userData.code !== 0 || !userData.data) {
@@ -42,11 +45,11 @@ async function syncUserToLocalDB(uid, accessToken) {
     // 4. Insert new user
     await db.query(
       'INSERT INTO users (user_id, name, email, phone_number, role, department) VALUES (?, ?, ?, ?, ?, ?)',
-      [uid, name, email, phone_number, role, department]
+      [userId, name, email, phone_number, role, department]
     );
 
     return {
-      user_id: uid,
+      user_id: userId,
       email,
       name,
       role: role,
