@@ -55,19 +55,23 @@ exports.login = async (req, res) => {
         res.cookie('refresh_token', refreshToken, COOKIE_OPTIONS);
       }
 
-      const uidValue = getJwtSub(accessToken);
-      if (uidValue) {
-        res.cookie('uid', uidValue, { ...COOKIE_OPTIONS, httpOnly: false }); // uid 可讓前端讀取
+      const uuid = getJwtSub(accessToken);
+      if (!uuid) {
+        res.status(500).json({
+          success: false,
+          message: 'SSO access token 未包含使用者 UUID',
+        });
+        return;
       }
 
       // Sync user to local database
-      const localUser = await syncUserToLocalDB(uidValue, accessToken);
+      const localUser = await syncUserToLocalDB(uuid, accessToken);
 
       res.json({
         success: true,
         message: 'SSO 登入成功',
         data: {
-          uid: uidValue,
+          uuid,
           accessToken: accessToken,
           user: localUser, // Include local user info with role
         },
@@ -202,7 +206,6 @@ exports.logout = async (req, res) => {
 
     if (data.code === 0) {
       res.clearCookie('refresh_token', COOKIE_OPTIONS);
-      res.clearCookie('uid', { ...COOKIE_OPTIONS, httpOnly: false });
 
       res.json({
         success: true,
@@ -227,14 +230,14 @@ exports.getProfile = async (req, res) => {
   // authMiddleware.authenticateToken should have already populated req.user
   const user = req.user;
 
-  if (!user || (!user.user_id && !user.uid)) {
+  if (!user || !user.user_id) {
     return res.status(401).json({
       success: false,
       message: '未驗證的使用者',
     });
   }
 
-  const userId = user.user_id || user.uid;
+  const userId = user.user_id;
 
   try {
     // Fetch latest data from local DB

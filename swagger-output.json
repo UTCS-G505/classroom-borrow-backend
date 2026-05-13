@@ -1154,11 +1154,6 @@
             "name": "authorization",
             "in": "header",
             "type": "string"
-          },
-          {
-            "name": "uid",
-            "in": "query",
-            "type": "string"
           }
         ],
         "responses": {
@@ -1191,11 +1186,6 @@
           {
             "name": "authorization",
             "in": "header",
-            "type": "string"
-          },
-          {
-            "name": "uid",
-            "in": "query",
             "type": "string"
           }
         ],

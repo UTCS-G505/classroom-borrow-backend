@@ -75,12 +75,12 @@ exports.logoutFromSSO = async (refreshToken) => {
 
 /**
  * 從 SSO 取得使用者資料
- * @param {string} uid - 使用者 ID
+ * @param {string} userId - SSO user UUID
  * @param {string} accessToken - access token
  * @returns {Promise<Object>} SSO 回應資料
  */
-exports.getUserProfileFromSSO = async (uid, accessToken) => {
-  const response = await axios.get(SSO_API_URL + `/user/get/${uid}`, {
+exports.getUserProfileFromSSO = async (userId, accessToken) => {
+  const response = await axios.get(SSO_API_URL + `/user/get/${userId}`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
