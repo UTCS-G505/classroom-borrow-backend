@@ -216,35 +216,39 @@ exports.getAllUsers = async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT 
-        u.user_id, 
-        u.name, 
-        u.email, 
-        u.role, 
-        u.department, 
-        u.created_at,
-        b.reason AS blacklist_reason,
-        b.expired_at AS blacklist_expired_at
+        u.user_id, u.name, u.email, u.phone_number, u.role, u.department, u.created_at,
+        b.blacklist_id, b.reason as blacklist_reason, b.expired_at as blacklist_expired_at
       FROM users u
-      LEFT JOIN blacklist b ON u.user_id = b.user_id
+      LEFT JOIN blacklist b ON u.user_id = b.user_id AND (b.expired_at IS NULL OR b.expired_at > NOW())
+      ORDER BY u.created_at DESC
     `);
     res.json(rows);
   } catch (err) {
-    console.error('getAllUsers error:', err);
+    console.error('Query error:', err);
     res.status(500).json({ error: '資料庫錯誤' });
   }
 };
 
 exports.updateUserRole = async (req, res) => {
-  const { id } = req.params;
   const { role } = req.body;
+  const user_id = req.params.id;
 
-  if (role === undefined) {
-    return res.status(400).json({ error: '缺少 role 欄位' });
+  if (role === undefined || role === null) {
+    return res.status(400).json({ error: 'Missing role field' });
   }
 
   try {
-    await pool.query('UPDATE users SET role = ? WHERE user_id = ?', [role, id]);
-    res.json({ success: true, message: '權限已更新' });
+    const [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [
+      user_id,
+    ]);
+    if (users.length === 0) {
+      return res.status(404).json({ error: '找不到該使用者' });
+    }
+
+    const updateSql = 'UPDATE users SET role = ? WHERE user_id = ?';
+    await pool.query(updateSql, [role, user_id]);
+
+    res.json({ message: '使用者權限已更新', user_id, role });
   } catch (err) {
     console.error('updateUserRole error:', err);
     res.status(500).json({ error: '資料庫錯誤' });

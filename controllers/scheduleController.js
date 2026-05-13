@@ -68,19 +68,42 @@ exports.getSchedule = async (req, res) => {
         });
       } else if (req.borrow_type === '多次借用') {
         const bookingStart = new Date(req.start_date);
-        const bookingEnd = req.end_date ? new Date(req.end_date) : new Date(req.start_date);
+        const bookingEnd = req.end_date
+          ? new Date(req.end_date)
+          : new Date(req.start_date);
+
+        // Query range
+        const queryStart = start_date
+          ? new Date(start_date)
+          : date
+            ? new Date(date)
+            : bookingStart;
+        const queryEnd = end_date
+          ? new Date(end_date)
+          : date
+            ? new Date(date)
+            : bookingEnd;
+
+        // Determine which dates this recurring booking occurs on
         const occurrenceDates = [];
 
         if (req.repeat_frequency === '每天') {
           let currentDate = new Date(Math.max(bookingStart, queryStart));
           const endDate = new Date(Math.min(bookingEnd, queryEnd));
+
           while (currentDate <= endDate) {
             occurrenceDates.push(new Date(currentDate));
             currentDate.setDate(currentDate.getDate() + 1);
           }
         } else if (req.repeat_frequency === '每周') {
           let currentDate = new Date(bookingStart);
-          while (currentDate < queryStart) currentDate.setDate(currentDate.getDate() + 7);
+
+          // Find first occurrence within or after query range
+          while (currentDate < queryStart) {
+            currentDate.setDate(currentDate.getDate() + 7);
+          }
+
+          // Add all occurrences within range
           while (currentDate <= bookingEnd && currentDate <= queryEnd) {
             if (currentDate >= queryStart) occurrenceDates.push(new Date(currentDate));
             currentDate.setDate(currentDate.getDate() + 7);
