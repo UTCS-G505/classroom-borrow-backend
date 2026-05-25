@@ -164,6 +164,7 @@ exports.updateBookings = async (req, res) => {
           eventName: requestData.event_name,
           classroom: requestData.classroom_id,
           startDate: requestData.start_date,
+          endDate: requestData.end_date,
           startTime: requestData.start_time,
           endTime: requestData.end_time,
           comment: null,
