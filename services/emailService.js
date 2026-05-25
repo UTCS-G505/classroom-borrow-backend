@@ -19,6 +19,14 @@ const formatTimeForDisplay = (timeStr) => {
   return timeStr.toString().substring(0, 5);
 };
 
+const formatDateRangeForDisplay = (startDate, endDate) => {
+  const start = formatDateForDisplay(startDate);
+  const end = formatDateForDisplay(endDate);
+
+  if (!end || end === start) return start;
+  return `${start} ~ ${end}`;
+};
+
 // 樣式設定：保持簡潔現代感
 const styles = {
   container:
@@ -39,6 +47,7 @@ const sendTeacherSignoffMail = async ({
   activityName,
   classroom,
   date,
+  endDate,
   startTime,
   endTime,
   baseUrl,
@@ -56,7 +65,7 @@ const sendTeacherSignoffMail = async ({
         <div style="${styles.item}"><span style="${styles.label}">申請人：</span>${userEmail}</div>
         <div style="${styles.item}"><span style="${styles.label}">活動：</span>${activityName}</div>
         <div style="${styles.item}"><span style="${styles.label}">地點：</span>${classroom}</div>
-        <div style="${styles.item}"><span style="${styles.label}">時間：</span>${date} ${startTime} - ${endTime}</div>
+        <div style="${styles.item}"><span style="${styles.label}">時間：</span>${formatDateRangeForDisplay(date, endDate)} ${startTime} - ${endTime}</div>
         
         <a href="${baseUrl}/teacher-signoff?id=${idToUse}" style="${styles.button}">點此前往簽核</a>
         
@@ -99,6 +108,7 @@ const sendApprovalNotification = async ({
   eventName,
   classroom,
   startDate,
+  endDate,
   startTime,
   endTime,
   comment,
@@ -119,7 +129,7 @@ const sendApprovalNotification = async ({
           <strong>借用資訊：</strong><br/>
           活動：${eventName}<br/>
           教室：${classroom}<br/>
-          時間：${formatDateForDisplay(startDate)} ${formatTimeForDisplay(startTime)} - ${formatTimeForDisplay(endTime)}
+          時間：${formatDateRangeForDisplay(startDate, endDate)} ${formatTimeForDisplay(startTime)} - ${formatTimeForDisplay(endTime)}
         </div>
         ${commentHtml}
         <p>使用完畢後請記得關閉電源、維持場地整潔，謝謝！</p>
