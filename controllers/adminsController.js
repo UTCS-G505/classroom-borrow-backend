@@ -1,5 +1,6 @@
 const pool = require('../db');
 const dayjs = require('dayjs');
+const emailService = require('../services/emailService');
 
 exports.getAllBookings = async (req, res) => {
   try {
@@ -154,6 +155,24 @@ exports.updateBookings = async (req, res) => {
     await connection.query(updateRequestSql, [dbStatus, reason, request_id]);
 
     await connection.commit();
+
+    if (status === 'approved') {
+      try {
+        await emailService.sendApprovalNotification({
+          userEmail: requestData.borrower_email,
+          borrowId: requestData.request_id,
+          eventName: requestData.event_name,
+          classroom: requestData.classroom_id,
+          startDate: requestData.start_date,
+          startTime: requestData.start_time,
+          endTime: requestData.end_time,
+          comment: null,
+        });
+      } catch (emailError) {
+        console.error('核准通知信寄送失敗:', emailError);
+      }
+    }
+
     res.json({
       success: true,
       message: `已完成: ${dbStatus}`,
