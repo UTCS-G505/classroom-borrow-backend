@@ -195,6 +195,9 @@ router.put(
 router.get('/schedules', scheduleController.getAllSchedules);
 router.post('/schedules/import', scheduleController.importSchedule);
 router.delete('/schedules/clear', scheduleController.clearSchedules);
-router.delete('/schedules/semester', scheduleController.deleteSemesterSchedules);
+router.delete(
+  '/schedules/semester',
+  scheduleController.deleteSemesterSchedules
+);
 
 module.exports = router;
