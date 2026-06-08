@@ -2,7 +2,10 @@ const assert = require('assert');
 const Module = require('module');
 const path = require('path');
 
-const controllerPath = path.join(__dirname, '../controllers/adminsController.js');
+const controllerPath = path.join(
+  __dirname,
+  '../controllers/adminsController.js'
+);
 const dbPath = path.join(__dirname, '../db.js');
 const emailPath = path.join(__dirname, '../services/emailService.js');
 
@@ -269,7 +272,9 @@ async function testTeacherSignoffEmailRendersDateRange() {
 
   assert.strictEqual(sentEmails.length, 1);
   assert(
-    sentEmails[0].html.includes('時間：</span>2026-06-01 ~ 2026-06-05 12:10 - 13:00'),
+    sentEmails[0].html.includes(
+      '時間：</span>2026-06-01 ~ 2026-06-05 12:10 - 13:00'
+    ),
     'teacher signoff email should render the full requested date range'
   );
 }

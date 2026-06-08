@@ -1,5 +1,6 @@
 const pool = require('../db');
 const dayjs = require('dayjs');
+const { validateFieldLengths } = require('../utils/fieldLimits');
 
 // Get all announcements (Public/User view - only active? or Admin view - all?)
 // Ideally: Admin sees all, User sees only active (not expired).
@@ -47,6 +48,11 @@ exports.createAnnouncement = async (req, res) => {
     return res.status(400).json({ error: '標題與內容為必填' });
   }
 
+  const lengthError = validateFieldLengths('announcements', { title });
+  if (lengthError) {
+    return res.status(400).json({ error: lengthError });
+  }
+
   const sql = `INSERT INTO announcements (title, content, expired_at) VALUES (?, ?, ?)`;
 
   try {
@@ -75,6 +81,11 @@ exports.updateAnnouncement = async (req, res) => {
 
   if (!title && !content && expired_at === undefined) {
     return res.status(400).json({ error: '無更新內容' });
+  }
+
+  const lengthError = validateFieldLengths('announcements', { title });
+  if (lengthError) {
+    return res.status(400).json({ error: lengthError });
   }
 
   // Let's do dynamic SQL generation for flexibility
