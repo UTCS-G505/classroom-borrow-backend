@@ -11,9 +11,20 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // 啟用 CORS
+// 允許的來源由 CORS_ORIGINS（逗號分隔）或 FRONTEND_URL 指定，未設定時退回本機開發位址。
+// 註：正式環境若由前端 nginx 同源反向代理，瀏覽器不會發出跨來源請求，此設定僅供直連使用。
+const allowedOrigins = (
+  process.env.CORS_ORIGINS ||
+  process.env.FRONTEND_URL ||
+  'http://localhost:5173,http://127.0.0.1:5173'
+)
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: allowedOrigins,
     credentials: true,
   })
 );

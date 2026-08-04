@@ -1,4 +1,20 @@
 node_modules
 .git
+.github
 mysql-data
 *.log
+
+# 不要把任何機密或本機設定包進映像
+.env
+.env.*
+!.env.example
+*.swp
+
+# 部署不需要的東西
+tests
+docs
+.vscode
+docker-compose.yml
+Dockerfile
+.dockerignore
+README.md
