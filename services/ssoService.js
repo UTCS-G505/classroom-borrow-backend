@@ -2,7 +2,7 @@ const axios = require('axios');
 
 // === 設定 ===
 const SSO_API_URL =
-  process.env.SSO_API_URL || 'https://algotutor.utaipei.edu.tw:1777/api/v1';
+  process.env.SSO_API_URL || 'https://csportal.utaipei.edu.tw/api/v1';
 const USER_AGENT = 'ClassroomBorrowBackend';
 
 /**
