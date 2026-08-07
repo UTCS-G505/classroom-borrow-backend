@@ -18,7 +18,7 @@ exports.loginToSSO = async (account, password) => {
 
   console.log('正在發送請求至 SSO...');
 
-  const response = await axios.post(SSO_API_URL + '/auth/login', params, {
+  const response = await axios.post(SSO_API_URL + '/login', params, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': USER_AGENT,
