@@ -64,8 +64,22 @@ exports.login = async (req, res) => {
         return;
       }
 
-      // Sync user to local database
+      // Sync user to local database.
+      // 同步失敗的使用者拿不到 role，之後每一個需要權限的 API 都會回 403。
+      // 與其回一個 user 為 null 的「登入成功」把問題延後引爆（症狀會長得像
+      // 權限設定壞掉），這裡直接讓登入失敗並講清楚。
       const localUser = await syncUserToLocalDB(uuid, accessToken);
+
+      if (!localUser) {
+        console.error(
+          `使用者 ${uuid} 同步至本地資料庫失敗，登入中止（失敗原因見前一則錯誤紀錄）`
+        );
+        res.status(502).json({
+          success: false,
+          message: '登入驗證成功，但無法取得使用者資料，請聯絡管理員',
+        });
+        return;
+      }
 
       res.json({
         success: true,
