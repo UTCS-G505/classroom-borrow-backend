@@ -36,7 +36,7 @@ exports.loginToSSO = async (account, password) => {
  */
 exports.refreshTokenFromSSO = async (refreshToken) => {
   const response = await axios.post(
-    `${SSO_API_URL}/auth/refresh`,
+    `${SSO_API_URL}/refresh`,
     {},
     {
       headers: {
@@ -58,7 +58,7 @@ exports.refreshTokenFromSSO = async (refreshToken) => {
  */
 exports.logoutFromSSO = async (refreshToken) => {
   const response = await axios.post(
-    `${SSO_API_URL}/auth/logout`,
+    `${SSO_API_URL}/logout`,
     {},
     {
       headers: {
@@ -80,7 +80,7 @@ exports.logoutFromSSO = async (refreshToken) => {
  * @returns {Promise<Object>} SSO 回應資料
  */
 exports.getUserProfileFromSSO = async (userId, accessToken) => {
-  const response = await axios.get(SSO_API_URL + `/user/get/${userId}`, {
+  const response = await axios.get(SSO_API_URL + `/user/${userId}`, {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
