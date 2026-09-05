@@ -3,6 +3,11 @@ const dayjs = require('dayjs');
 const emailService = require('../services/emailService');
 const { USER_ROLES, VALID_CLASSROOMS } = require('../utils/constants');
 const { validateFieldLengths } = require('../utils/fieldLimits');
+const {
+  expandOccurrences,
+  findOverlappingDate,
+  findScheduleConflictDate,
+} = require('../utils/occurrences');
 const crypto = require('crypto');
 
 exports.getBookings = async (req, res) => {
@@ -141,21 +146,31 @@ exports.postBookings = async (req, res) => {
   let sDate = dayjs(start_date).format('YYYY-MM-DD');
   let eDate = dayjs(!end_date ? start_date : end_date).format('YYYY-MM-DD');
 
-  // 2. SQL 邏輯：檢查 borrow_requests (申請中或已核准案件) 重疊
-  // 檢查同一間教室、同一天，且狀態不是「退件/已取消/已歸還」的申請單
-  // 這些狀態包含：'審核中', '教師核准', '核准', '已預約'
+  // 2. 展開這張申請單實際會佔用教室的日期
+  //    單次借用 = 起始日一天；多次借用 = 依每天/每周展開整段期間
+  const occurrenceDates = expandOccurrences({
+    borrow_type,
+    repeat_frequency,
+    start_date: sDate,
+    end_date: eDate,
+  });
+
+  // 3. SQL 邏輯：先用「時間段重疊 + 日期區間重疊」粗篩出可能衝突的申請單，
+  //    再在 JS 端把雙方展開成實際日期比對，多次借用才不會只比到 start_date。
+  //    狀態不是「退件/已取消/已歸還」的都視為佔用（審核中、教師核准、核准）。
   const checkRequestsSql = `
-        SELECT request_id 
+        SELECT request_id, borrow_type, repeat_frequency, start_date, end_date
         FROM borrow_requests 
         WHERE classroom_id = ? 
-          AND start_date = ? 
           AND status NOT IN ('退件', '已取消', '已歸還')
           AND start_time < ? 
           AND end_time > ?
+          AND start_date <= ?
+          AND COALESCE(end_date, start_date) >= ?
         FOR UPDATE
     `;
 
-  const reqValues = [classroom_id, sDate, end_time, start_time];
+  const reqValues = [classroom_id, end_time, start_time, eDate, sDate];
 
   // SQL INSERT
   const insertSql = `
@@ -178,81 +193,54 @@ exports.postBookings = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // 檢查 borrow_requests 衝突 (包含已預約和申請中的)
+    // 檢查 borrow_requests 衝突 (審核中 / 教師核准 / 核准 的單子都算佔用)
     const [reqRows] = await connection.query(checkRequestsSql, reqValues);
 
-    if (reqRows.length > 0) {
-      console.log(`時段衝突！該時段已被預約或正在審核中`);
+    let conflictDate = null;
+    for (const row of reqRows) {
+      conflictDate = findOverlappingDate(occurrenceDates, row);
+      if (conflictDate) break;
+    }
+
+    if (conflictDate) {
+      console.log(`時段衝突！${conflictDate} 已被預約或正在審核中`);
       await connection.rollback();
       return res.status(409).json({
-        error: '該時段已被其他申請單預約或正在審核中，請選擇其他時間。',
+        error: `該時段已被其他申請單預約或正在審核中（衝突日期：${conflictDate}），請選擇其他時間。`,
+        conflict_date: conflictDate,
       });
     }
 
     // 檢查固定課表衝突 class_schedules
-    let classCheckSql;
-    let classCheckValues;
-    const dayOfWeek = dayjs(sDate).day(); // 0(Sun) - 6(Sat)
-
-    if (borrow_type === '單次借用') {
-      classCheckSql = `
-        SELECT schedule_id FROM class_schedules
+    // 一樣先粗篩（教室、時間段、學期區間），再確認展開後的日期是否落在課程的星期上
+    const classCheckSql = `
+        SELECT schedule_id, weekday, semester_start_date, semester_end_date
+        FROM class_schedules
         WHERE classroom_id = ?
-          AND weekday = ?
           AND semester_start_date <= ?
           AND semester_end_date >= ?
           AND start_time < ?
           AND end_time > ?
       `;
-      classCheckValues = [
-        classroom_id,
-        dayOfWeek,
-        sDate,
-        sDate,
-        end_time,
-        start_time,
-      ];
-    } else {
-      if (repeat_frequency === '每周') {
-        classCheckSql = `
-          SELECT schedule_id FROM class_schedules
-          WHERE classroom_id = ?
-            AND weekday = ?
-            AND semester_start_date <= ?
-            AND semester_end_date >= ?
-            AND start_time < ?
-            AND end_time > ?
-        `;
-        classCheckValues = [
-          classroom_id,
-          dayOfWeek,
-          eDate,
-          sDate,
-          end_time,
-          start_time,
-        ];
-      } else {
-        classCheckSql = `
-          SELECT schedule_id FROM class_schedules
-          WHERE classroom_id = ?
-            AND semester_start_date <= ?
-            AND semester_end_date >= ?
-            AND start_time < ?
-            AND end_time > ?
-        `;
-        classCheckValues = [classroom_id, eDate, sDate, end_time, start_time];
-      }
-    }
+    const classCheckValues = [classroom_id, eDate, sDate, end_time, start_time];
 
     const [classReqRows] = await connection.query(
       classCheckSql,
       classCheckValues
     );
-    if (classReqRows.length > 0) {
-      console.log(`固定課表衝突！該時段已有安排課程`);
+
+    let classConflictDate = null;
+    for (const schedule of classReqRows) {
+      classConflictDate = findScheduleConflictDate(occurrenceDates, schedule);
+      if (classConflictDate) break;
+    }
+
+    if (classConflictDate) {
+      console.log(`固定課表衝突！${classConflictDate} 該時段已有安排課程`);
       await connection.rollback();
       return res.status(409).json({
-        error: '該時段與固定課表衝突，請選擇其他時間。',
+        error: `該時段與固定課表衝突（衝突日期：${classConflictDate}），請選擇其他時間。`,
+        conflict_date: classConflictDate,
       });
     }
 
@@ -503,29 +491,43 @@ exports.taSignoff = async (req, res) => {
 
     // 若助教要核准，需再次檢查是否有衝突 (防護機制 3)
     if (status === '核准') {
-      // 檢查 borrow_requests 表 (其他剛剛被核准的單子) by internal request_id exclusion
+      // 檢查 borrow_requests 表 (其他剛剛被核准的單子)
+      // 一樣先粗篩，再用展開後的日期比對，多次借用才不會只比到 start_date
+      const requestDates = expandOccurrences(request);
       const checkRequestsSql = `
-          SELECT request_id FROM borrow_requests 
+          SELECT request_id, borrow_type, repeat_frequency, start_date, end_date
+          FROM borrow_requests 
           WHERE classroom_id = ? 
-          AND start_date = ? 
           AND status IN ('核准', '已預約') 
           AND request_id != ? 
           AND start_time < ? 
           AND end_time > ?
+          AND start_date <= ?
+          AND COALESCE(end_date, start_date) >= ?
       `;
-      const [conflictRequests] = await connection.query(checkRequestsSql, [
-        request.classroom_id,
-        request.start_date,
-        request.request_id, // Use internal ID for exclusion check
-        request.end_time,
-        request.start_time,
-      ]);
+      const [conflictRequests] = requestDates.length
+        ? await connection.query(checkRequestsSql, [
+            request.classroom_id,
+            request.request_id, // Use internal ID for exclusion check
+            request.end_time,
+            request.start_time,
+            requestDates[requestDates.length - 1],
+            requestDates[0],
+          ])
+        : [[]];
 
-      if (conflictRequests.length > 0) {
+      let conflictDate = null;
+      for (const row of conflictRequests) {
+        conflictDate = findOverlappingDate(requestDates, row);
+        if (conflictDate) break;
+      }
+
+      if (conflictDate) {
         await connection.rollback();
         return res.status(409).json({
           success: false,
-          message: '衝突警告：該時段剛剛已經被另一張申請單核准了。',
+          message: `衝突警告：${conflictDate} 該時段剛剛已經被另一張申請單核准了。`,
+          conflict_date: conflictDate,
         });
       }
     }
