@@ -88,6 +88,53 @@ router.get(
   controller.getAllBlacklist
 );
 
+router.post(
+  '/bookings',
+  /*
+        #swagger.description = '管理員依「場地及設備租借表」代為新增借用（直接核准，可一次多筆，任一筆衝突則整批不新增）'
+        #swagger.parameters['body'] = {
+            in: 'body',
+            description: '借用資料陣列',
+            required: true,
+            schema: {
+                "bookings": [
+                    {
+                        "classroom_id": "CCHALL",
+                        "borrow_type": "單次借用",
+                        "start_date": "2026-12-01",
+                        "start_time": "08:00",
+                        "end_time": "12:00",
+                        "event_name": "年度成果發表會",
+                        "people_count": 300,
+                        "borrower_department": "臺北市某某協會",
+                        "borrower_name": "王小明",
+                        "borrower_phone": "0912-345678",
+                        "borrower_email": "",
+                        "reason": "【場地及設備租借表】選用設備：大型投影機(時) × 1"
+                    }
+                ]
+            }
+        }
+        #swagger.responses[201] = {
+            schema: {
+                "message": "已新增 1 筆借用",
+                "bookings": [
+                    { "request_id": 12, "public_id": "uuid", "classroom_id": "CCHALL", "start_date": "2026-12-01" }
+                ]
+            }
+        }
+        #swagger.responses[409] = {
+            schema: {
+                "error": "第 1 筆（CCHALL）已被其他申請單預約或正在審核中（衝突日期：2026-12-01），整批未新增。",
+                "index": 0,
+                "conflict_type": "booking",
+                "conflict_date": "2026-12-01"
+            }
+        }
+    */
+  controller.createBookings
+);
+
 router.put(
   '/bookings/:id/status',
   /* 
