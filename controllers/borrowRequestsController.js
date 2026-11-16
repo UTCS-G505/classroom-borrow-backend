@@ -55,7 +55,8 @@ exports.getBookingsById = async (req, res) => {
 exports.postBookings = async (req, res) => {
   // Force user_id from authenticated user to prevent creating bookings for others
   const user_id = req.user.user_id;
-  const {
+  // 用 let：下方會把未填的聯絡欄位補成空字串
+  let {
     classroom_id,
     borrow_type,
     repeat_frequency,

@@ -1,6 +1,11 @@
 const pool = require('../db');
 const dayjs = require('dayjs');
+const crypto = require('crypto');
 const emailService = require('../services/emailService');
+const { VALID_CLASSROOMS, VENUE_IDS } = require('../utils/constants');
+const { validateFieldLengths } = require('../utils/fieldLimits');
+const { expandOccurrences } = require('../utils/occurrences');
+const { findBookingConflict } = require('../utils/bookingConflicts');
 
 exports.getAllBookings = async (req, res) => {
   try {
@@ -182,6 +187,269 @@ exports.updateBookings = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('updateBookings error:', err);
+    res.status(500).json({ error: '資料庫錯誤' });
+  } finally {
+    connection.release();
+  }
+};
+
+// ---------- 管理員依「場地及設備租借表」代為新增借用 ----------
+
+const ADMIN_BOOKABLE_VENUES = new Set([...VALID_CLASSROOMS, ...VENUE_IDS]);
+const MAX_ADMIN_BOOKINGS = 20; // 單次最多登錄幾筆（租借表一個場地一頁）
+const MAX_REASON_LENGTH = 2000;
+const MAX_RANGE_DAYS = 366;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+$/;
+
+function trimmed(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+// 'YYYY-MM-DD' 且為真實存在的日期（2026-02-30 這類會被拒絕）
+function parseIsoDate(value) {
+  if (typeof value !== 'string' || !DATE_RE.test(value)) return null;
+  const date = dayjs(value);
+  return date.isValid() && date.format('YYYY-MM-DD') === value ? date : null;
+}
+
+// 'HH:MM' 或 'HH:MM:SS' → 'HH:MM:SS'，方便字串比較與寫入 TIME 欄位
+function normalizeTime(value) {
+  if (typeof value !== 'string') return null;
+  const match = value.trim().match(TIME_RE);
+  return match ? `${match[1]}:${match[2]}:${match[3] || '00'}` : null;
+}
+
+/**
+ * 驗證並整理單筆借用資料。
+ * @returns {{booking: object} | {error: string}}
+ */
+function normalizeAdminBooking(input) {
+  if (!input || typeof input !== 'object') return { error: '資料格式錯誤' };
+
+  const classroom_id = trimmed(input.classroom_id);
+  const event_name = trimmed(input.event_name);
+  const borrower_department = trimmed(input.borrower_department);
+  const borrower_name = trimmed(input.borrower_name);
+  const borrower_phone = trimmed(input.borrower_phone);
+  const borrower_email = trimmed(input.borrower_email);
+  const reason = trimmed(input.reason);
+
+  const missing = [];
+  if (!classroom_id) missing.push('classroom_id');
+  if (!input.start_date) missing.push('start_date');
+  if (!input.start_time) missing.push('start_time');
+  if (!input.end_time) missing.push('end_time');
+  if (!event_name) missing.push('event_name');
+  if (!borrower_department) missing.push('borrower_department');
+  if (!borrower_name) missing.push('borrower_name');
+  if (missing.length > 0) {
+    return { error: `缺少必要欄位: ${missing.join(', ')}` };
+  }
+
+  if (!ADMIN_BOOKABLE_VENUES.has(classroom_id)) {
+    return { error: '無效的場地代號' };
+  }
+
+  const start = parseIsoDate(input.start_date);
+  if (!start) return { error: '借用日期格式錯誤（需為 YYYY-MM-DD）' };
+  if (start.isBefore(dayjs().startOf('day'))) {
+    return { error: '借用日期不可早於今天' };
+  }
+
+  const borrow_type = input.borrow_type || '單次借用';
+  if (borrow_type !== '單次借用' && borrow_type !== '多次借用') {
+    return { error: '借用類型必須為「單次借用」或「多次借用」' };
+  }
+
+  let repeat_frequency = null;
+  let end_date = null;
+  if (borrow_type === '多次借用') {
+    if (
+      input.repeat_frequency !== '每天' &&
+      input.repeat_frequency !== '每周'
+    ) {
+      return { error: '多次借用需指定重複頻率（每天或每周）' };
+    }
+    const end = parseIsoDate(input.end_date);
+    if (!end) return { error: '多次借用需填寫正確的結束日期' };
+    if (end.isBefore(start)) return { error: '結束日期不可早於借用日期' };
+    if (end.diff(start, 'day') >= MAX_RANGE_DAYS) {
+      return { error: '借用期間不可超過一年' };
+    }
+    repeat_frequency = input.repeat_frequency;
+    end_date = end.format('YYYY-MM-DD');
+  }
+
+  const start_time = normalizeTime(input.start_time);
+  const end_time = normalizeTime(input.end_time);
+  if (!start_time || !end_time) {
+    return { error: '時間格式錯誤（需為 HH:MM）' };
+  }
+  if (end_time <= start_time) {
+    return { error: '結束時間必須晚於開始時間' };
+  }
+
+  let people_count = null;
+  if (
+    input.people_count !== undefined &&
+    input.people_count !== null &&
+    input.people_count !== ''
+  ) {
+    const count = Number(input.people_count);
+    if (!Number.isInteger(count) || count < 0) {
+      return { error: '人數必須為不小於 0 的整數' };
+    }
+    people_count = count;
+  }
+
+  if (borrower_email && !EMAIL_RE.test(borrower_email)) {
+    return { error: '電子郵件格式錯誤' };
+  }
+
+  if ([...reason].length > MAX_REASON_LENGTH) {
+    return { error: `備註長度不可超過 ${MAX_REASON_LENGTH} 個字` };
+  }
+
+  const lengthError = validateFieldLengths('borrow_requests', {
+    classroom_id,
+    event_name,
+    borrower_department,
+    borrower_name,
+    borrower_phone,
+    borrower_email,
+  });
+  if (lengthError) return { error: lengthError };
+
+  return {
+    booking: {
+      classroom_id,
+      borrow_type,
+      repeat_frequency,
+      start_date: start.format('YYYY-MM-DD'),
+      end_date,
+      start_time,
+      end_time,
+      event_name,
+      people_count,
+      reason: reason || null,
+      borrower_department,
+      borrower_name,
+      borrower_phone,
+      borrower_email,
+    },
+  };
+}
+
+const INSERT_ADMIN_BOOKING_SQL = `
+  INSERT INTO borrow_requests (
+    public_id, user_id, classroom_id, borrow_type, repeat_frequency,
+    start_date, end_date, start_time, end_time, event_name, people_count,
+    reason, status, reject_reason,
+    borrower_department, borrower_phone, borrower_email, borrower_name
+  ) VALUES (
+    ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?,
+    ?, '核准', NULL,
+    ?, ?, ?, ?
+  )`;
+
+// 管理員依紙本/列印的租借表登錄借用：直接核准，不走指導老師簽核、不寄信。
+// 一次可登錄多筆（租借表每個場地一頁），全部成功才寫入，任一筆衝突即整批取消。
+exports.createBookings = async (req, res) => {
+  const user_id = req.user && req.user.user_id;
+  if (!user_id) {
+    return res.status(401).json({ error: '無法辨識登入的管理員' });
+  }
+
+  const items = req.body && req.body.bookings;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: '請至少提供一筆借用資料' });
+  }
+  if (items.length > MAX_ADMIN_BOOKINGS) {
+    return res
+      .status(400)
+      .json({ error: `一次最多新增 ${MAX_ADMIN_BOOKINGS} 筆借用` });
+  }
+
+  const bookings = [];
+  for (let i = 0; i < items.length; i++) {
+    const result = normalizeAdminBooking(items[i]);
+    if (result.error) {
+      return res
+        .status(400)
+        .json({ error: `第 ${i + 1} 筆：${result.error}`, index: i });
+    }
+    bookings.push(result.booking);
+  }
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const created = [];
+    for (let i = 0; i < bookings.length; i++) {
+      const booking = bookings[i];
+      const occurrenceDates = expandOccurrences(booking);
+
+      const conflict = await findBookingConflict(
+        connection,
+        booking,
+        occurrenceDates
+      );
+      if (conflict) {
+        await connection.rollback();
+        const what =
+          conflict.type === 'schedule'
+            ? '與固定課表衝突'
+            : '已被其他申請單預約或正在審核中';
+        return res.status(409).json({
+          error: `第 ${i + 1} 筆（${booking.classroom_id}）${what}（衝突日期：${conflict.date}），整批未新增。`,
+          index: i,
+          conflict_type: conflict.type,
+          conflict_date: conflict.date,
+        });
+      }
+
+      const publicId = crypto.randomUUID();
+      const [result] = await connection.query(INSERT_ADMIN_BOOKING_SQL, [
+        publicId,
+        user_id,
+        booking.classroom_id,
+        booking.borrow_type,
+        booking.repeat_frequency,
+        booking.start_date,
+        booking.end_date,
+        booking.start_time,
+        booking.end_time,
+        booking.event_name,
+        booking.people_count,
+        booking.reason,
+        booking.borrower_department,
+        booking.borrower_phone,
+        booking.borrower_email,
+        booking.borrower_name,
+      ]);
+
+      created.push({
+        request_id: result.insertId,
+        public_id: publicId,
+        classroom_id: booking.classroom_id,
+        start_date: booking.start_date,
+      });
+    }
+
+    await connection.commit();
+
+    res.status(201).json({
+      message: `已新增 ${created.length} 筆借用`,
+      bookings: created,
+    });
+  } catch (err) {
+    await connection.rollback();
+    console.error('createBookings error:', err);
     res.status(500).json({ error: '資料庫錯誤' });
   } finally {
     connection.release();
